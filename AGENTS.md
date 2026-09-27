@@ -71,7 +71,7 @@ Fleet-standard Vitest layout:
 
 | Path | Purpose |
 |---|---|
-| `vitest.config.ts` | `jsdom` environment (no `setupFiles`); `scenerystack` aliased to `scenerystack/dot`; `execArgv: ["--expose-gc"]` |
+| `vitest.config.ts` | Fleet template: `happy-dom`, `setupFiles: ["./tests/setup.ts"]`, `execArgv: ["--expose-gc"]` |
 | `tests/**/*.test.ts` | Model/physics unit tests |
 | `tests/memory-leak.test.ts` | WeakRef + `forceGC` dispose regression (fleet pattern) |
 
@@ -80,8 +80,6 @@ Actual specs:
 - `tests/DopplerCalculator.test.ts`
 - `tests/WaveGenerator.test.ts`
 - `tests/memory-leak.test.ts`
-
-Vitest environment: **`jsdom`** (not the fleet-default `happy-dom`) — physics tests need browser globals without pulling the full SceneryStack barrel.
 
 Run `npm test`. CI runs the suite when a `test` script is present.
 
