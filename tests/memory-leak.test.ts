@@ -5,7 +5,6 @@
 
 import { Vector2 } from "scenerystack";
 import { describe, expect, it } from "vitest";
-import { TimeModel } from "../src/common/TimeModel.js";
 import { DopplerCalculator } from "../src/doppler-effect/model/DopplerCalculator.js";
 import type { Wave } from "../src/doppler-effect/model/DopplerEffectModel.js";
 import { describeDisposalLeaks, forceGC } from "./helpers/memoryLeak.js";
@@ -41,4 +40,4 @@ describe("Memory leak regression", () => {
   });
 });
 
-describeDisposalLeaks([{ name: "TimeModel", create: () => new TimeModel(), idempotentDispose: true }]);
+describeDisposalLeaks([]);

@@ -49,7 +49,7 @@ frequency + play state) via the `screenSummaryContent` super-option, and orders 
 ## Compliance carve-outs
 
 - **Root constants:** `src/DopplerEffectConstants.ts` (sim-wide); no separate nested primary constants module.
-- **Domain clock:** `timeSpeedProperty` (including reverse) and simulation-state history drive the clock instead of composing fleet-standard `TimeModel` (`src/common/TimeModel.ts` is present for shared reference only).
+- **Domain clock:** `timeSpeedProperty` (including reverse) and simulation-state history drive the clock instead of composing fleet-standard `TimeModel`.
 
 
 ### `package.json` overrides
