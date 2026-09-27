@@ -15,8 +15,8 @@ import {
   type Property,
   Text,
 } from "scenerystack";
-import DopplerEffectColors from "../../../DopplerEffectColors";
-import { StringManager } from "../../../i18n/StringManager";
+import DopplerEffectColors from "../../../DopplerEffectColors.js";
+import { StringManager } from "../../../i18n/StringManager.js";
 
 // Configuration options for the scale mark display
 type ScaleMarkOptions = {

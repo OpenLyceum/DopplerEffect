@@ -16,7 +16,7 @@ import {
   Text,
 } from "scenerystack";
 import { NumberDisplay } from "scenerystack/scenery-phet";
-import { StringManager } from "../../../i18n/StringManager";
+import { StringManager } from "../../../i18n/StringManager.js";
 
 // Configuration options for the status text display
 type StatusTextOptions = {

@@ -9,7 +9,7 @@ import {
   type TReadOnlyProperty,
 } from "scenerystack";
 
-import DopplerEffectColors from "../../../DopplerEffectColors";
+import DopplerEffectColors from "../../../DopplerEffectColors.js";
 
 /**
  * Options for the GridNode

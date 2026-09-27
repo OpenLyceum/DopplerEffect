@@ -16,7 +16,7 @@ import {
   type TReadOnlyProperty,
   type Vector2,
 } from "scenerystack";
-import { StringManager } from "../../../i18n/StringManager";
+import { StringManager } from "../../../i18n/StringManager.js";
 
 /**
  * Configuration options for the vector display

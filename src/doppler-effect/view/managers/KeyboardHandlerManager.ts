@@ -5,7 +5,7 @@
  */
 
 import { type Property, Vector2 } from "scenerystack";
-import { Scenario } from "../../model/DopplerEffectModel";
+import { Scenario } from "../../model/DopplerEffectModel.js";
 
 /** Minimal numeric range shape (satisfied by RangeWithValue). */
 type NumericRange = { min: number; max: number };

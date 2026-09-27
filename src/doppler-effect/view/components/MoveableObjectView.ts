@@ -13,9 +13,9 @@ import {
   type TReadOnlyProperty,
   type Vector2,
 } from "scenerystack";
-import type { PositionHistoryPoint } from "../../model/DopplerEffectModel";
-import { TrailPath } from "./TrailPath";
-import { VectorDisplay } from "./VectorDisplay";
+import type { PositionHistoryPoint } from "../../model/DopplerEffectModel.js";
+import { TrailPath } from "./TrailPath.js";
+import { VectorDisplay } from "./VectorDisplay.js";
 
 /**
  * Configuration options for the moveable object view

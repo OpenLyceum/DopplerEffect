@@ -10,6 +10,7 @@
  */
 
 import { Vector2 } from "scenerystack";
+import DopplerEffectNamespace from "./DopplerEffectNamespace.js";
 
 /** Corner radius shared by control panels and dialogs (px). */
 export const PANEL_CORNER_RADIUS = 5;
@@ -89,3 +90,15 @@ export const TRAIL = {
   // Default trail opacity
   DEFAULT_OPACITY: 0.7,
 } as const;
+
+DopplerEffectNamespace.register("DopplerEffectConstants", {
+  PANEL_CORNER_RADIUS,
+  PHYSICS,
+  WAVE,
+  INITIAL_POSITIONS,
+  SOUND_DATA,
+  TIME_SPEED,
+  SCALE,
+  WAVEFORM,
+  TRAIL,
+});

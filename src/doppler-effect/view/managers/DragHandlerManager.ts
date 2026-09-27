@@ -16,7 +16,7 @@ import {
   RichDragListener,
   Vector2,
 } from "scenerystack";
-import { PHYSICS } from "../../../DopplerEffectConstants";
+import { PHYSICS } from "../../../DopplerEffectConstants.js";
 
 /**
  * Manager for creating and attaching a drag handler to a simulation object

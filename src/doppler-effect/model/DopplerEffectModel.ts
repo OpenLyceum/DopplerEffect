@@ -20,14 +20,14 @@ import {
   SOUND_DATA,
   TIME_SPEED,
   type WaveformPoint,
-} from "../../DopplerEffectConstants";
-import { StringManager } from "../../i18n/StringManager";
-import type { DopplerEffectPreferencesModel } from "../../preferences/DopplerEffectPreferencesModel";
-import dopplerEffectQueryParameters from "../../preferences/dopplerEffectQueryParameters";
-import { DopplerCalculator } from "./DopplerCalculator";
-import { MovableObject, type PositionHistoryPoint } from "./MovableObject";
-import { WaveformManager } from "./WaveformManager";
-import { WaveGenerator } from "./WaveGenerator";
+} from "../../DopplerEffectConstants.js";
+import { StringManager } from "../../i18n/StringManager.js";
+import type { DopplerEffectPreferencesModel } from "../../preferences/DopplerEffectPreferencesModel.js";
+import dopplerEffectQueryParameters from "../../preferences/dopplerEffectQueryParameters.js";
+import { DopplerCalculator } from "./DopplerCalculator.js";
+import { MovableObject, type PositionHistoryPoint } from "./MovableObject.js";
+import { WaveformManager } from "./WaveformManager.js";
+import { WaveGenerator } from "./WaveGenerator.js";
 
 // Export the Wave type
 export type Wave = {
@@ -46,7 +46,7 @@ export type WaveDetection = {
 };
 
 // Position history points type — canonical definition lives in MovableObject.ts
-export type { PositionHistoryPoint } from "./MovableObject";
+export type { PositionHistoryPoint } from "./MovableObject.js";
 
 // Simulation state history type for time reversal.
 // Waves are intentionally not snapshotted here: wave restoration is handled by

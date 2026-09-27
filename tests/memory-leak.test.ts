@@ -5,8 +5,8 @@
 
 import { Vector2 } from "scenerystack";
 import { describe, expect, it } from "vitest";
-import { DopplerCalculator } from "../src/doppler-effect/model/DopplerCalculator.ts";
-import type { Wave } from "../src/doppler-effect/model/DopplerEffectModel.ts";
+import { DopplerCalculator } from "../src/doppler-effect/model/DopplerCalculator.js";
+import type { Wave } from "../src/doppler-effect/model/DopplerEffectModel.js";
 
 /**
  * Force garbage collection with multiple passes. When `earlyExitRefs` is supplied

@@ -14,8 +14,8 @@ import { DerivedProperty } from "scenerystack/axon";
 import { toFixed } from "scenerystack/dot";
 import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
-import { StringManager } from "../../i18n/StringManager";
-import type { DopplerEffectModel } from "../model/DopplerEffectModel";
+import { StringManager } from "../../i18n/StringManager.js";
+import type { DopplerEffectModel } from "../model/DopplerEffectModel.js";
 
 export class DopplerEffectScreenSummaryContent extends ScreenSummaryContent {
   public constructor(model: DopplerEffectModel) {

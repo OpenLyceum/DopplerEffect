@@ -8,8 +8,8 @@
 
 import { BooleanProperty } from "scenerystack/axon";
 import type { Tandem } from "scenerystack/tandem";
-import DopplerEffectNamespace from "../DopplerEffectNamespace";
-import dopplerEffectQueryParameters from "./dopplerEffectQueryParameters";
+import DopplerEffectNamespace from "../DopplerEffectNamespace.js";
+import dopplerEffectQueryParameters from "./dopplerEffectQueryParameters.js";
 
 export class DopplerEffectPreferencesModel {
   public readonly microphoneEnabledProperty: BooleanProperty;

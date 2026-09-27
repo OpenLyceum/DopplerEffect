@@ -9,10 +9,10 @@ import { Text, VBox } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import { Checkbox } from "scenerystack/sun";
 import type { Tandem } from "scenerystack/tandem";
-import DopplerEffectColors from "../DopplerEffectColors";
-import DopplerEffectNamespace from "../DopplerEffectNamespace";
-import { StringManager } from "../i18n/StringManager";
-import type { DopplerEffectPreferencesModel } from "./DopplerEffectPreferencesModel";
+import DopplerEffectColors from "../DopplerEffectColors.js";
+import DopplerEffectNamespace from "../DopplerEffectNamespace.js";
+import { StringManager } from "../i18n/StringManager.js";
+import type { DopplerEffectPreferencesModel } from "./DopplerEffectPreferencesModel.js";
 
 export class DopplerEffectPreferencesNode extends VBox {
   public constructor(preferencesModel: DopplerEffectPreferencesModel, tandem?: Tandem) {

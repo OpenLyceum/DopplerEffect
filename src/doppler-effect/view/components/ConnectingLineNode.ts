@@ -10,8 +10,8 @@ import {
   type Vector2,
 } from "scenerystack";
 import { NumberDisplay } from "scenerystack/scenery-phet";
-import DopplerEffectColors from "../../../DopplerEffectColors";
-import { StringManager } from "../../../i18n/StringManager";
+import DopplerEffectColors from "../../../DopplerEffectColors.js";
+import { StringManager } from "../../../i18n/StringManager.js";
 
 /**
  * A node that displays a connecting line between two points with a distance label

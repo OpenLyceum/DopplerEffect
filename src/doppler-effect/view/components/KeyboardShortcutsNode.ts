@@ -19,8 +19,8 @@ import {
   LetterKeyNode,
   TwoColumnKeyboardHelpContent,
 } from "scenerystack/scenery-phet";
-import DopplerEffectColors from "../../../DopplerEffectColors";
-import { StringManager } from "../../../i18n/StringManager";
+import DopplerEffectColors from "../../../DopplerEffectColors.js";
+import { StringManager } from "../../../i18n/StringManager.js";
 
 // Configuration options for the keyboard shortcuts display
 type KeyboardShortcutsOptions = {

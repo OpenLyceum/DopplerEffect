@@ -10,7 +10,7 @@
 
 import { logGlobal } from "scenerystack/phet-core";
 import { QueryStringMachine } from "scenerystack/query-string-machine";
-import DopplerEffectNamespace from "../DopplerEffectNamespace";
+import DopplerEffectNamespace from "../DopplerEffectNamespace.js";
 
 const dopplerEffectQueryParameters = QueryStringMachine.getAll({
   /** Whether the microphone tool is enabled by default. */

@@ -1,8 +1,8 @@
 import type { ObservableArray } from "scenerystack";
 import { Vector2 } from "scenerystack";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Wave } from "../src/doppler-effect/model/DopplerEffectModel.ts";
-import { WaveGenerator } from "../src/doppler-effect/model/WaveGenerator.ts";
+import type { Wave } from "../src/doppler-effect/model/DopplerEffectModel.js";
+import { WaveGenerator } from "../src/doppler-effect/model/WaveGenerator.js";
 
 /**
  * Minimal array-backed stand-in for the subset of ObservableArray that

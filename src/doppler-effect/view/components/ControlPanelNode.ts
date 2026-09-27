@@ -17,8 +17,8 @@ import {
   VerticalCheckboxGroup,
   type VerticalCheckboxGroupItem,
 } from "scenerystack";
-import DopplerEffectColors from "../../../DopplerEffectColors";
-import { StringManager } from "../../../i18n/StringManager";
+import DopplerEffectColors from "../../../DopplerEffectColors.js";
+import { StringManager } from "../../../i18n/StringManager.js";
 
 // Configuration options for the control panel
 type ControlPanelOptions = {

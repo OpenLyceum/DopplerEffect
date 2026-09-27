@@ -23,8 +23,8 @@ import {
   Text,
   Vector2,
 } from "scenerystack";
-import DopplerEffectColors from "../../../DopplerEffectColors";
-import { StringManager } from "../../../i18n/StringManager";
+import DopplerEffectColors from "../../../DopplerEffectColors.js";
+import { StringManager } from "../../../i18n/StringManager.js";
 
 // Constants for layout positioning and styling
 const GRAPH_TITLE_OFFSET_X = 5;

@@ -17,25 +17,25 @@ import {
 import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/DopplerEffectButtonOptions.js";
-import DopplerEffectColors from "../../DopplerEffectColors";
-import { SCALE } from "../../DopplerEffectConstants";
-import { StringManager } from "../../i18n/StringManager";
-import { type DopplerEffectModel, Scenario } from "../model/DopplerEffectModel";
-import { ConnectingLineNode } from "./components/ConnectingLineNode";
+import DopplerEffectColors from "../../DopplerEffectColors.js";
+import { SCALE } from "../../DopplerEffectConstants.js";
+import { StringManager } from "../../i18n/StringManager.js";
+import { type DopplerEffectModel, Scenario } from "../model/DopplerEffectModel.js";
+import { ConnectingLineNode } from "./components/ConnectingLineNode.js";
 // Import components directly
-import { ControlPanelNode } from "./components/ControlPanelNode";
-import { GraphDisplayNode } from "./components/GraphDisplayNode";
-import { GridNode } from "./components/GridNode";
-import { KeyboardShortcutsNode } from "./components/KeyboardShortcutsNode";
-import { MicrophoneNode } from "./components/MicrophoneNode";
-import { MoveableObjectView } from "./components/MoveableObjectView";
-import { ScaleMarkNode } from "./components/ScaleMarkNode";
-import { StatusTextNode } from "./components/StatusTextNode";
-import { DopplerEffectScreenSummaryContent } from "./DopplerEffectScreenSummaryContent";
+import { ControlPanelNode } from "./components/ControlPanelNode.js";
+import { GraphDisplayNode } from "./components/GraphDisplayNode.js";
+import { GridNode } from "./components/GridNode.js";
+import { KeyboardShortcutsNode } from "./components/KeyboardShortcutsNode.js";
+import { MicrophoneNode } from "./components/MicrophoneNode.js";
+import { MoveableObjectView } from "./components/MoveableObjectView.js";
+import { ScaleMarkNode } from "./components/ScaleMarkNode.js";
+import { StatusTextNode } from "./components/StatusTextNode.js";
+import { DopplerEffectScreenSummaryContent } from "./DopplerEffectScreenSummaryContent.js";
 // Import managers directly
-import { DragHandlerManager } from "./managers/DragHandlerManager";
-import { KeyboardHandlerManager } from "./managers/KeyboardHandlerManager";
-import { WaveManager } from "./managers/WaveManager";
+import { DragHandlerManager } from "./managers/DragHandlerManager.js";
+import { KeyboardHandlerManager } from "./managers/KeyboardHandlerManager.js";
+import { WaveManager } from "./managers/WaveManager.js";
 
 // UI constants
 const UI = {

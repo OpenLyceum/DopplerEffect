@@ -19,9 +19,9 @@ import {
   type Vector2,
 } from "scenerystack";
 import { stepTimer } from "scenerystack/axon";
-import DopplerEffectColors from "../../../DopplerEffectColors";
-import { StringManager } from "../../../i18n/StringManager";
-import { Sound } from "../utils/Sound";
+import DopplerEffectColors from "../../../DopplerEffectColors.js";
+import { StringManager } from "../../../i18n/StringManager.js";
+import { Sound } from "../utils/Sound.js";
 
 // Constants for microphone visualization and behavior
 const MICROPHONE = {

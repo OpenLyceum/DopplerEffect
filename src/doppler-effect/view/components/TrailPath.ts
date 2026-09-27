@@ -16,7 +16,7 @@ import {
 } from "scenerystack";
 
 // Import position history point interface from model
-import type { PositionHistoryPoint } from "../../model/DopplerEffectModel";
+import type { PositionHistoryPoint } from "../../model/DopplerEffectModel.js";
 
 /**
  * Configuration options for the trail creator

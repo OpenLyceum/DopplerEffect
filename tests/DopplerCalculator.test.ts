@@ -1,7 +1,7 @@
 import { Vector2 } from "scenerystack";
 import { describe, expect, it } from "vitest";
-import { DopplerCalculator } from "../src/doppler-effect/model/DopplerCalculator.ts";
-import type { Wave } from "../src/doppler-effect/model/DopplerEffectModel.ts";
+import { DopplerCalculator } from "../src/doppler-effect/model/DopplerCalculator.js";
+import type { Wave } from "../src/doppler-effect/model/DopplerEffectModel.js";
 
 const SOUND_SPEED = 343; // m/s
 const SOURCE_FREQ = 1000; // Hz
