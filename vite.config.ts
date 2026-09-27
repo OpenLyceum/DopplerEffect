@@ -19,6 +19,16 @@ const securityHeaders: Record<string, string> = {
     // Function/eval for query-parameter parsing — reopen a CSP audit then.
     // 'unsafe-eval' is required for SceneryStack query parameter parsing
     "script-src 'self' 'unsafe-eval'",
+    // Event-handler attributes are governed by script-src-attr, separately from
+    // inline <script>. SceneryStack's ParallelDOM.pdomInputEnabledListener sets an
+    // inline `onclick` on any control whose input it disables (`return false`, then
+    // `""` when re-enabled) — e.g. the time-control step button whenever the clock
+    // starts or stops. 'unsafe-hashes' lets exactly those two handlers through;
+    // anything else still fails. Without it the fuzz suite fails on the CSP console
+    // error. Regenerate: printf 'return false' | openssl dgst -sha256 -binary | base64
+    "script-src-attr 'unsafe-hashes' " +
+      "'sha256-GZIcz60Uwd6wT3vaYke/atSr53TehbYAPepOa3d03Vw=' " +
+      "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
     "worker-src blob: 'self'",
     // TODO(scenerystack): drop 'unsafe-inline' when SceneryStack stops setting
     // element.style / cssText for theming (same CSP revisit as unsafe-eval).
