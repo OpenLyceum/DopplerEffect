@@ -77,4 +77,4 @@ pointer listeners. Expand `tests/memory-leak.test.ts` if adding dynamic layers o
 
 ## Multi-screen simulations
 
-Single-screen sim. See fleet `doc/multi-screen.md` if splitting source-motion vs. observer-motion labs.
+Single-screen sim. To split source-motion and observer-motion labs, follow [SceneryStackTemplate `doc/multi-screen.md`](https://github.com/OpenLyceum/SceneryStackTemplate/blob/main/doc/multi-screen.md).
