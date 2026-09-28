@@ -1,9 +1,9 @@
 /**
  * DopplerEffectPreferencesModel.ts
  *
- * Sim-specific preferences (Preferences → Simulation) for Doppler Effect. Each
- * preference Property takes its initial value from the corresponding query
- * parameter in dopplerEffectQueryParameters.
+ * Model for the simulation-specific preferences shown in Preferences →
+ * Simulation. Each preference Property takes its initial value from the
+ * corresponding query parameter in dopplerEffectQueryParameters.
  */
 
 import { BooleanProperty } from "scenerystack/axon";
