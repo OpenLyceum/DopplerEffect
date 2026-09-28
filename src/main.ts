@@ -19,8 +19,8 @@
 // brand.js MUST be first; importing it runs the whole chain (init→assert→splash→brand) before main.
 import "./brand.js";
 
-import { Tandem } from "scenerystack";
 import { onReadyToLaunch, PreferencesModel, Sim } from "scenerystack/sim";
+import { Tandem } from "scenerystack/tandem";
 import DopplerEffectColors from "./DopplerEffectColors.js";
 import { DopplerEffectScreen } from "./doppler-effect/DopplerEffectScreen.js";
 import { StringManager } from "./i18n/StringManager.js";
@@ -42,7 +42,6 @@ onReadyToLaunch(() => {
   ];
 
   const sim = new Sim(stringManager.getTitleStringProperty(), screens, {
-    webgl: true,
     preferencesModel: new PreferencesModel({
       visualOptions: {
         // Adds a "Projector Mode" toggle in Preferences → Visual
@@ -62,6 +61,7 @@ onReadyToLaunch(() => {
         supportsDynamicLocale: true,
       },
     }),
+    webgl: true,
 
     // Optional: fill in credits shown in Help → About
     credits: {
