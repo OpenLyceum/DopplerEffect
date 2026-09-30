@@ -5,7 +5,13 @@
  */
 
 import { type Property, Vector2 } from "scenerystack";
+import type { OneKeyStroke } from "scenerystack/scenery";
 import { Scenario } from "../../model/DopplerEffectModel.js";
+import {
+  DopplerEffectHotkeyData,
+  keyStrokeFromKeyboardEvent,
+  SOUND_SPEED_DOWN_STROKE,
+} from "../DopplerEffectHotkeyData.js";
 
 /** Minimal numeric range shape (satisfied by RangeWithValue). */
 type NumericRange = { min: number; max: number };
@@ -89,7 +95,7 @@ export class KeyboardHandlerManager {
   ): void {
     // Create a shared handler function for keydown events, dispatching to
     // focused helpers grouped by the kind of action each key triggers.
-    const handleKeydown = (key: string) => {
+    const handleKeydown = (key: OneKeyStroke) => {
       this.handleObjectSelection(key, selectedObjectProperty, callbacks);
 
       // Arrow key movement is only available while the simulation is playing
@@ -117,7 +123,16 @@ export class KeyboardHandlerManager {
       if (isEditableTarget(event.target)) {
         return;
       }
-      handleKeydown(event.key.toLowerCase());
+      // Shortcuts that have a help row are matched against DopplerEffectHotkeyData.
+      // Space (play/pause) and R (reset) are not in that dialog; they stay literal.
+      const stroke = keyStrokeFromKeyboardEvent(event);
+      if (stroke) {
+        handleKeydown(stroke);
+      }
+      const key = event.key.toLowerCase();
+      if (key === " " || key === "r") {
+        this.handleActions(key, callbacks, playProperty, microphoneEnabledProperty);
+      }
     };
     window.addEventListener("keydown", this.windowKeydownListener);
   }
@@ -136,14 +151,14 @@ export class KeyboardHandlerManager {
    * Select the source or observer object
    */
   private handleObjectSelection(
-    key: string,
+    key: OneKeyStroke,
     selectedObjectProperty: Property<"source" | "observer">,
     callbacks: KeyboardCallbacks,
   ): void {
-    if (key === "s") {
+    if (DopplerEffectHotkeyData.selectSource.hasKeyStroke(key)) {
       selectedObjectProperty.value = "source";
       callbacks.onSourceSelected();
-    } else if (key === "o") {
+    } else if (DopplerEffectHotkeyData.selectObserver.hasKeyStroke(key)) {
       selectedObjectProperty.value = "observer";
       callbacks.onObserverSelected();
     }
@@ -153,13 +168,17 @@ export class KeyboardHandlerManager {
    * Apply arrow/WASD movement to the currently selected object
    */
   private handleMovement(
-    key: string,
+    key: OneKeyStroke,
     selectedObjectProperty: Property<"source" | "observer">,
     sourceVelocityProperty: Property<Vector2>,
     observerVelocityProperty: Property<Vector2>,
     sourceMovingProperty: Property<boolean>,
     observerMovingProperty: Property<boolean>,
   ): void {
+    if (!DopplerEffectHotkeyData.move.hasKeyStroke(key)) {
+      return;
+    }
+
     // Determine which object to control
     const targetVelocity =
       selectedObjectProperty.value === "source" ? sourceVelocityProperty : observerVelocityProperty;
@@ -168,18 +187,18 @@ export class KeyboardHandlerManager {
     // Set velocity based on key
     const velocity = new Vector2(0, 0);
 
-    // Note: "s" is reserved for selecting the source (see handleObjectSelection),
+    // "s" is reserved for selecting the source (see handleObjectSelection),
     // so downward movement uses ArrowDown only. "w"/"a"/"d" remain as WASD aliases
     // for the non-conflicting directions.
-    if (key === "arrowleft" || key === "a") {
+    if (key === "arrowLeft" || key === "a") {
       velocity.x = -100.0;
-    } else if (key === "arrowright" || key === "d") {
+    } else if (key === "arrowRight" || key === "d") {
       velocity.x = 100.0;
     }
 
-    if (key === "arrowup" || key === "w") {
+    if (key === "arrowUp" || key === "w") {
       velocity.y = 100.0;
-    } else if (key === "arrowdown") {
+    } else if (key === "arrowDown") {
       velocity.y = -100.0;
     }
 
@@ -194,32 +213,37 @@ export class KeyboardHandlerManager {
    * Handle one-shot action keys: trail toggle, pause, reset, help, and microphone
    */
   private handleActions(
-    key: string,
+    key: OneKeyStroke | " ",
     callbacks: KeyboardCallbacks,
     playProperty: Property<boolean>,
     microphoneEnabledProperty: Property<boolean>,
   ): void {
-    if (key === "t") {
-      callbacks.onToggleTrails();
+    if (key !== " ") {
+      if (DopplerEffectHotkeyData.toggleTrails.hasKeyStroke(key)) {
+        callbacks.onToggleTrails();
+      }
+      if (key === "r") {
+        callbacks.onReset();
+      }
+      if (DopplerEffectHotkeyData.toggleHelp.hasKeyStroke(key)) {
+        callbacks.onToggleHelp();
+      }
+      if (DopplerEffectHotkeyData.toggleMicrophone.hasKeyStroke(key)) {
+        microphoneEnabledProperty.value = !microphoneEnabledProperty.value;
+      }
     }
     if (key === " ") {
       playProperty.value = !playProperty.value;
-    }
-    if (key === "r") {
-      callbacks.onReset();
-    }
-    if (key === "h") {
-      callbacks.onToggleHelp();
-    }
-    if (key === "m") {
-      microphoneEnabledProperty.value = !microphoneEnabledProperty.value;
     }
   }
 
   /**
    * Load a preset scenario from a number key
    */
-  private handleScenarioPresets(key: string, scenarioProperty: Property<Scenario>): void {
+  private handleScenarioPresets(key: OneKeyStroke, scenarioProperty: Property<Scenario>): void {
+    if (!DopplerEffectHotkeyData.scenarios.hasKeyStroke(key)) {
+      return;
+    }
     const scenario = SCENARIO_BY_KEY[key];
     if (scenario !== undefined) {
       scenarioProperty.value = scenario;
@@ -231,7 +255,7 @@ export class KeyboardHandlerManager {
    * sliders enforce so the keyboard can't drive values out of bounds.
    */
   private handleAdjustments(
-    key: string,
+    key: OneKeyStroke,
     emittedFrequencyProperty: Property<number>,
     soundSpeedProperty: Property<number>,
     frequencyRange: NumericRange,
@@ -239,16 +263,20 @@ export class KeyboardHandlerManager {
   ): void {
     const clamp = (value: number, range: NumericRange) => Math.max(range.min, Math.min(range.max, value));
 
-    if (key === "+" || key === "=") {
-      emittedFrequencyProperty.value = clamp(emittedFrequencyProperty.value + 0.1, frequencyRange);
-    } else if (key === "-" || key === "_") {
-      emittedFrequencyProperty.value = clamp(emittedFrequencyProperty.value - 0.1, frequencyRange);
+    if (DopplerEffectHotkeyData.adjustFrequency.hasKeyStroke(key)) {
+      if (key === "plus" || key === "equals") {
+        emittedFrequencyProperty.value = clamp(emittedFrequencyProperty.value + 0.1, frequencyRange);
+      } else if (key === "minus" || key === "shift+minus") {
+        emittedFrequencyProperty.value = clamp(emittedFrequencyProperty.value - 0.1, frequencyRange);
+      }
     }
 
-    if (key === "." || key === ">") {
-      soundSpeedProperty.value = clamp(soundSpeedProperty.value + 1.0, soundSpeedRange);
-    } else if (key === "," || key === "<") {
-      soundSpeedProperty.value = clamp(soundSpeedProperty.value - 1.0, soundSpeedRange);
+    if (DopplerEffectHotkeyData.adjustSoundSpeed.hasKeyStroke(key)) {
+      if (key === "period" || key === "shift+period") {
+        soundSpeedProperty.value = clamp(soundSpeedProperty.value + 1.0, soundSpeedRange);
+      } else if (key === SOUND_SPEED_DOWN_STROKE) {
+        soundSpeedProperty.value = clamp(soundSpeedProperty.value - 1.0, soundSpeedRange);
+      }
     }
   }
 }

@@ -2,12 +2,16 @@
  * DopplerEffectKeyboardHelpContent.ts
  *
  * Content for the standard keyboard-help dialog (the "?" button joist adds to
- * the navigation bar). Mirrors the keys wired up in the screen view: selecting
- * and moving the source/observer, adjusting frequency and sound speed, choosing
- * preset scenarios, and toggling the motion trails, microphone and help. The
- * basic-actions section covers Tab navigation, buttons and checkboxes.
+ * the navigation bar). Every custom row is `KeyboardHelpSectionRow.fromHotkeyData`
+ * on `DopplerEffectHotkeyData`, which is also what the key listener matches.
+ *
+ * Keys the icon factory cannot draw (observer "o", trails "t", +/- , comma/period,
+ * scenario digits past 3) pass an icon built from the same HotkeyData's glyphs.
+ * The factory's English key map has no node for those strokes, and calling
+ * `fromHotkeyData` without an icon would throw when the dialog opens.
  */
 
+import type { Node, TColor } from "scenerystack/scenery";
 import {
   BasicActionsKeyboardHelpSection,
   KeyboardHelpIconFactory,
@@ -17,81 +21,110 @@ import {
   TwoColumnKeyboardHelpContent,
 } from "scenerystack/scenery-phet";
 import { StringManager } from "../../i18n/StringManager.js";
+import { DopplerEffectHotkeyData } from "./DopplerEffectHotkeyData.js";
+
+type SectionChrome = {
+  textMaxWidth?: number;
+  headingFill?: TColor;
+  labelFill?: TColor;
+};
+
+function helpRow(
+  hotkeyData: (typeof DopplerEffectHotkeyData)[keyof typeof DopplerEffectHotkeyData],
+  icon?: Node,
+  labelFill?: TColor,
+) {
+  return KeyboardHelpSectionRow.fromHotkeyData(hotkeyData, {
+    ...(icon ? { icon } : {}),
+    ...(labelFill ? { labelWithIconOptions: { labelOptions: { fill: labelFill } } } : {}),
+  });
+}
+
+/**
+ * The custom help sections, shared by the navigation-bar dialog and the in-sim
+ * shortcuts panel so both render the same HotkeyData.
+ */
+export function createDopplerEffectKeyboardHelpSections(chrome?: SectionChrome): {
+  left: KeyboardHelpSection[];
+  right: KeyboardHelpSection[];
+} {
+  const strings = StringManager.getInstance().getInstructionsStrings();
+  const labelFill = chrome?.labelFill;
+  const sectionOptions = {
+    ...(chrome?.textMaxWidth !== undefined ? { textMaxWidth: chrome.textMaxWidth } : {}),
+    ...(chrome?.headingFill ? { headingOptions: { fill: chrome.headingFill } } : {}),
+  };
+
+  const navigationSection = new KeyboardHelpSection(
+    strings.sections.navigationStringProperty,
+    [
+      helpRow(DopplerEffectHotkeyData.selectSource, undefined, labelFill),
+      // "o" is a real shortcut but has no entry in KeyboardHelpIconFactory.
+      helpRow(DopplerEffectHotkeyData.selectObserver, new LetterKeyNode("O"), labelFill),
+      helpRow(DopplerEffectHotkeyData.move, undefined, labelFill),
+    ],
+    sectionOptions,
+  );
+
+  const adjustmentSection = new KeyboardHelpSection(
+    strings.sections.parameterAdjustmentStringProperty,
+    [
+      helpRow(
+        DopplerEffectHotkeyData.adjustFrequency,
+        KeyboardHelpIconFactory.iconToIcon(new LetterKeyNode("+"), new LetterKeyNode("-")),
+        labelFill,
+      ),
+      helpRow(
+        DopplerEffectHotkeyData.adjustSoundSpeed,
+        KeyboardHelpIconFactory.iconToIcon(new LetterKeyNode(","), new LetterKeyNode(".")),
+        labelFill,
+      ),
+    ],
+    sectionOptions,
+  );
+
+  const scenariosSection = new KeyboardHelpSection(
+    strings.sections.scenariosStringProperty,
+    [
+      helpRow(
+        DopplerEffectHotkeyData.scenarios,
+        KeyboardHelpIconFactory.iconToIcon(new LetterKeyNode("0"), new LetterKeyNode("6")),
+        labelFill,
+      ),
+    ],
+    sectionOptions,
+  );
+
+  const visibilitySection = new KeyboardHelpSection(
+    strings.sections.visibilityOptionsStringProperty,
+    [
+      // "t" is a real shortcut but has no entry in KeyboardHelpIconFactory.
+      helpRow(DopplerEffectHotkeyData.toggleTrails, new LetterKeyNode("T"), labelFill),
+      helpRow(DopplerEffectHotkeyData.toggleMicrophone, undefined, labelFill),
+      helpRow(DopplerEffectHotkeyData.toggleHelp, undefined, labelFill),
+    ],
+    sectionOptions,
+  );
+
+  const basicActionsSection = new BasicActionsKeyboardHelpSection({
+    withCheckboxContent: true,
+    ...sectionOptions,
+  });
+
+  return {
+    left: [navigationSection, adjustmentSection, scenariosSection],
+    right: [visibilitySection, basicActionsSection],
+  };
+}
 
 export class DopplerEffectKeyboardHelpContent extends TwoColumnKeyboardHelpContent {
   public constructor() {
-    const strings = StringManager.getInstance().getInstructionsStrings();
-
-    // Selecting and moving the source/observer.
-    const navigationSection = new KeyboardHelpSection(strings.sections.navigationStringProperty, [
-      KeyboardHelpSectionRow.labelWithIcon(strings.objectSelection.selectSourceStringProperty, new LetterKeyNode("S"), {
-        labelInnerContent: strings.a11y.objectSelection.selectSourceStringProperty,
-      }),
-      KeyboardHelpSectionRow.labelWithIcon(
-        strings.objectSelection.selectObserverStringProperty,
-        new LetterKeyNode("O"),
-        {
-          labelInnerContent: strings.a11y.objectSelection.selectObserverStringProperty,
-        },
-      ),
-      KeyboardHelpSectionRow.labelWithIcon(
-        strings.objectSelection.moveObjectStringProperty,
-        KeyboardHelpIconFactory.arrowOrWasdKeysRowIcon(),
-        {
-          labelInnerContent: strings.a11y.objectSelection.moveObjectStringProperty,
-        },
-      ),
-    ]);
-
-    // Adjusting frequency (+/-) and sound speed (,/.).
-    const adjustmentSection = new KeyboardHelpSection(strings.sections.parameterAdjustmentStringProperty, [
-      KeyboardHelpSectionRow.labelWithIcon(
-        strings.adjust.frequencyStringProperty,
-        KeyboardHelpIconFactory.iconToIcon(new LetterKeyNode("+"), new LetterKeyNode("-")),
-        {
-          labelInnerContent: strings.a11y.adjust.frequencyStringProperty,
-        },
-      ),
-      KeyboardHelpSectionRow.labelWithIcon(
-        strings.adjust.soundSpeedStringProperty,
-        KeyboardHelpIconFactory.iconToIcon(new LetterKeyNode(","), new LetterKeyNode(".")),
-        {
-          labelInnerContent: strings.a11y.adjust.soundSpeedStringProperty,
-        },
-      ),
-    ]);
-
-    // Choosing a preset scenario (0–6).
-    const scenariosSection = new KeyboardHelpSection(strings.sections.scenariosStringProperty, [
-      KeyboardHelpSectionRow.labelWithIcon(
-        strings.scenarioKeys.freePlayStringProperty,
-        KeyboardHelpIconFactory.iconToIcon(new LetterKeyNode("0"), new LetterKeyNode("6")),
-        {
-          labelInnerContent: strings.a11y.scenarioKeys.freePlayStringProperty,
-        },
-      ),
-    ]);
-
-    // Toggling motion trails (T), microphone (M) and help (H).
-    const visibilitySection = new KeyboardHelpSection(strings.sections.visibilityOptionsStringProperty, [
-      KeyboardHelpSectionRow.labelWithIcon(strings.toggleMotionTrailsStringProperty, new LetterKeyNode("T"), {
-        labelInnerContent: strings.a11y.toggleMotionTrailsStringProperty,
-      }),
-      KeyboardHelpSectionRow.labelWithIcon(strings.toggleMicrophoneStringProperty, new LetterKeyNode("M"), {
-        labelInnerContent: strings.a11y.toggleMicrophoneStringProperty,
-      }),
-      KeyboardHelpSectionRow.labelWithIcon(strings.controls.toggleHelpStringProperty, new LetterKeyNode("H"), {
-        labelInnerContent: strings.a11y.controls.toggleHelpStringProperty,
-      }),
-    ]);
-
-    // Standard basic actions: Tab navigation, buttons, checkboxes, Reset All, Escape.
-    const basicActionsSection = new BasicActionsKeyboardHelpSection({ withCheckboxContent: true });
-
-    // Align the icon columns within each column's custom sections.
-    KeyboardHelpSection.alignHelpSectionIcons([navigationSection, adjustmentSection, scenariosSection]);
-    KeyboardHelpSection.alignHelpSectionIcons([visibilitySection]);
-
-    super([navigationSection, adjustmentSection, scenariosSection], [visibilitySection, basicActionsSection]);
+    const { left, right } = createDopplerEffectKeyboardHelpSections();
+    KeyboardHelpSection.alignHelpSectionIcons(left);
+    const visibilitySection = right[0];
+    if (visibilitySection) {
+      KeyboardHelpSection.alignHelpSectionIcons([visibilitySection]);
+    }
+    super(left, right);
   }
 }

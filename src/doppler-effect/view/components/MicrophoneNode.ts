@@ -158,7 +158,7 @@ export class MicrophoneNode extends Node {
     this.addChild(this.detectionRing);
 
     // Create click sound (synthesized via WebAudio; no audio file is loaded)
-    this.clickSound = new Sound("", true);
+    this.clickSound = new Sound();
 
     // Position microphone at initial position
     this.center = this.modelViewTransform.modelToViewPosition(this.microphonePositionProperty.value);

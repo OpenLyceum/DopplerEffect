@@ -45,4 +45,8 @@ init({
   // Enables the "Projector Mode" color profile alongside the default dark theme.
   // Required when supportsProjectorMode: true is used in PreferencesModel (src/main.ts).
   colorProfiles: ["default", "projector"],
+
+  // Microphone clicks go through tambo. This turns on the sound library and the
+  // nav-bar mute control; the sim stays usable with sound off.
+  supportsSound: true,
 });

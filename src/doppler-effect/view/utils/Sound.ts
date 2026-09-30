@@ -1,16 +1,19 @@
 /**
  * Sound.ts
  *
- * Simple Sound wrapper class for playing audio in the Doppler Effect simulation.
- * Supports both preloaded audio files and programmatically generated sounds.
+ * One-shot synthesized click played when a wavefront reaches the microphone.
+ *
+ * The click is a short sine burst (500 Hz, ~10 ms envelope). It is a tambo
+ * `SoundGenerator` registered with `soundManager`, so the nav-bar / Preferences
+ * sound toggle mutes it and the sim stays usable with sound off. No
+ * `Audio` element or standalone `AudioContext` is created.
  */
 
-// Constants for sound generation and playback
-const SOUND = {
-  // Playback settings
-  DEFAULT_VOLUME: 0.5,
+import { SoundGenerator, soundManager } from "scenerystack/tambo";
 
-  // Click sound generation parameters
+// Click synthesis. The envelope peaks at PEAK_GAIN into the generator's output
+// (output level 1), matching the previous direct-to-destination click.
+const SOUND = {
   CLICK_FREQUENCY: 500, // Hz
   ATTACK_TIME: 0.001, // seconds
   DECAY_TIME: 0.01, // seconds
@@ -20,109 +23,37 @@ const SOUND = {
 };
 
 /**
- * Simple Sound wrapper class for playing audio
+ * Synthesized microphone click. One instance is registered with `soundManager`
+ * and `play()` is called each time a wave is detected.
  */
-export class Sound {
-  private audio: HTMLAudioElement | null = null;
-  private isLoaded: boolean = false;
-  private isMuted: boolean = false;
-  private audioContext: AudioContext | null = null;
-  private useGeneratedSound: boolean;
-
-  constructor(src: string = "", useGeneratedSound: boolean = false) {
-    this.useGeneratedSound = useGeneratedSound;
-
-    if (!useGeneratedSound) {
-      this.audio = new Audio();
-
-      // Add error handling for loading sound
-      this.audio.addEventListener("canplaythrough", () => {
-        this.isLoaded = true;
-      });
-
-      this.audio.addEventListener("error", () => {
-        this.isLoaded = false;
-      });
-
-      // Set source after adding listeners
-      this.audio.src = src;
-
-      // Try to load the audio
-      this.audio.load();
-    } else {
-      // For generated sounds, we don't need to load anything
-      this.isLoaded = true;
-    }
-  }
-
-  play() {
-    if (this.isMuted) {
-      return;
-    }
-
-    if (this.useGeneratedSound) {
-      this.playGeneratedClick();
-    } else if (this.isLoaded && this.audio) {
-      // Create a new audio element for each play to allow overlapping sounds
-      const sound = new Audio(this.audio.src);
-      sound.volume = SOUND.DEFAULT_VOLUME; // Lower volume to prevent being too loud
-
-      // Play and swallow playback errors (e.g. browser autoplay policy); they are non-critical
-      sound.play().catch(() => {
-        // Intentionally ignored
-      });
-    }
+export class Sound extends SoundGenerator {
+  public constructor() {
+    super({ initialOutputLevel: 1 });
+    soundManager.addSoundGenerator(this);
   }
 
   /**
-   * Play a programmatically generated click sound that's very short
-   * (less than 0.1 seconds)
+   * Play the click. No-op while sound is muted (`fullyEnabled` is false), so a
+   * suspended or disabled audio graph is never touched.
    */
-  private playGeneratedClick() {
-    try {
-      // Create audio context if it doesn't exist
-      if (!this.audioContext) {
-        // Type assertion for cross-browser compatibility
-        const AudioContextClass =
-          window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        this.audioContext = new AudioContextClass();
-      }
-
-      // Create an oscillator for the click
-      const oscillator = this.audioContext.createOscillator();
-      const gainNode = this.audioContext.createGain();
-
-      // Connect the nodes
-      oscillator.connect(gainNode);
-      gainNode.connect(this.audioContext.destination);
-
-      // Set up the click parameters
-      oscillator.type = "sine";
-      oscillator.frequency.value = SOUND.CLICK_FREQUENCY; // High frequency for a click
-
-      // Start with zero gain
-      gainNode.gain.value = SOUND.INITIAL_GAIN;
-
-      // Schedule the envelope - very short attack and decay
-      const now = this.audioContext.currentTime;
-      // Attack - quick fade in
-      gainNode.gain.linearRampToValueAtTime(SOUND.PEAK_GAIN, now + SOUND.ATTACK_TIME);
-      // Decay - quick fade out
-      gainNode.gain.linearRampToValueAtTime(SOUND.FINAL_GAIN, now + SOUND.DECAY_TIME);
-
-      // Start and stop the oscillator
-      oscillator.start(now);
-      oscillator.stop(now + SOUND.DECAY_TIME); // Stop after decay time
-    } catch {
-      // Intentionally ignored: generated-sound failures are non-critical
+  public play(): void {
+    if (!this.fullyEnabledProperty.value) {
+      return;
     }
-  }
 
-  mute() {
-    this.isMuted = true;
-  }
+    const oscillator = this.audioContext.createOscillator();
+    const envelope = this.audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(SOUND.CLICK_FREQUENCY, this.audioContext.currentTime);
+    oscillator.connect(envelope);
+    envelope.connect(this.soundSourceDestination);
 
-  unmute() {
-    this.isMuted = false;
+    const now = this.audioContext.currentTime;
+    envelope.gain.setValueAtTime(SOUND.INITIAL_GAIN, now);
+    envelope.gain.linearRampToValueAtTime(SOUND.PEAK_GAIN, now + SOUND.ATTACK_TIME);
+    envelope.gain.linearRampToValueAtTime(SOUND.FINAL_GAIN, now + SOUND.DECAY_TIME);
+
+    oscillator.start(now);
+    oscillator.stop(now + SOUND.DECAY_TIME);
   }
 }
