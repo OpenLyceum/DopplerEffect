@@ -18,6 +18,7 @@ import {
   KeyboardHelpSection,
   KeyboardHelpSectionRow,
   LetterKeyNode,
+  TextKeyNode,
   TwoColumnKeyboardHelpContent,
 } from "scenerystack/scenery-phet";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -95,6 +96,16 @@ export function createDopplerEffectKeyboardHelpSections(chrome?: SectionChrome):
     sectionOptions,
   );
 
+  const simulationControlsSection = new KeyboardHelpSection(
+    strings.sections.simulationControlsStringProperty,
+    [
+      helpRow(DopplerEffectHotkeyData.playPause, TextKeyNode.space(), labelFill),
+      // "r" is a real shortcut but has no entry in KeyboardHelpIconFactory.
+      helpRow(DopplerEffectHotkeyData.reset, new LetterKeyNode("R"), labelFill),
+    ],
+    sectionOptions,
+  );
+
   const visibilitySection = new KeyboardHelpSection(
     strings.sections.visibilityOptionsStringProperty,
     [
@@ -113,7 +124,7 @@ export function createDopplerEffectKeyboardHelpSections(chrome?: SectionChrome):
 
   return {
     left: [navigationSection, adjustmentSection, scenariosSection],
-    right: [visibilitySection, basicActionsSection],
+    right: [simulationControlsSection, visibilitySection, basicActionsSection],
   };
 }
 
@@ -121,10 +132,8 @@ export class DopplerEffectKeyboardHelpContent extends TwoColumnKeyboardHelpConte
   public constructor() {
     const { left, right } = createDopplerEffectKeyboardHelpSections();
     KeyboardHelpSection.alignHelpSectionIcons(left);
-    const visibilitySection = right[0];
-    if (visibilitySection) {
-      KeyboardHelpSection.alignHelpSectionIcons([visibilitySection]);
-    }
+    // Align the sim's own right-column sections (not the standard basic-actions one)
+    KeyboardHelpSection.alignHelpSectionIcons(right.slice(0, -1));
     super(left, right);
   }
 }

@@ -1,4 +1,4 @@
-import { BooleanProperty, Property, Vector2 } from "scenerystack";
+import { BooleanProperty, type Bounds2, Property, type TReadOnlyProperty, Vector2 } from "scenerystack";
 import { PHYSICS, TRAIL } from "../../DopplerEffectConstants.js";
 
 /**
@@ -19,6 +19,9 @@ export class MovableObject {
   public readonly velocityProperty: Property<Vector2>; // in meters per second (m/s)
   public readonly movingProperty: BooleanProperty;
 
+  // Region the object may move within, in meters (m)
+  private readonly boundsProperty: TReadOnlyProperty<Bounds2>;
+
   // Position history for trail
   private positionHistory: PositionHistoryPoint[] = [];
   private lastTrailSampleTime: number = 0;
@@ -26,8 +29,10 @@ export class MovableObject {
   /**
    * Create a new movable object
    * @param initialPosition Initial position vector in meters (m)
+   * @param boundsProperty Region the object may move within, in meters (m)
    */
-  constructor(initialPosition: Vector2) {
+  constructor(initialPosition: Vector2, boundsProperty: TReadOnlyProperty<Bounds2>) {
+    this.boundsProperty = boundsProperty;
     this.positionProperty = new Property<Vector2>(initialPosition); // in meters (m)
     this.velocityProperty = new Property<Vector2>(new Vector2(0, 0)); // in meters per second (m/s)
     this.movingProperty = new BooleanProperty(false);
@@ -43,11 +48,14 @@ export class MovableObject {
       const position = this.positionProperty.value; // in meters (m)
       const velocity = this.velocityProperty.value; // in meters per second (m/s)
 
-      // Update position based on velocity
-      this.positionProperty.value = position.plus(velocity.timesScalar(dt)); // in meters (m)
+      // Update position based on velocity, stopping at the edge of the movement bounds
+      // so the object can never drift out of view.
+      const unclamped = position.plus(velocity.timesScalar(dt)); // in meters (m)
+      const clamped = this.boundsProperty.value.closestPointTo(unclamped); // in meters (m)
+      this.positionProperty.value = clamped;
 
-      // Check if velocity is too small
-      if (velocity.magnitude < PHYSICS.MIN_VELOCITY_MAG) {
+      // Stop when the bounds were hit or the velocity is too small
+      if (!clamped.equals(unclamped) || velocity.magnitude < PHYSICS.MIN_VELOCITY_MAG) {
         // PHYSICS.MIN_VELOCITY_MAG in m/s
         this.movingProperty.value = false;
         this.velocityProperty.value = new Vector2(0, 0);
@@ -118,40 +126,11 @@ export class MovableObject {
   }
 
   /**
-   * Restore a previous state from history
-   * @param historyPoint The position history point to restore
+   * Discard trail samples recorded after a time being rewound to
+   * @param targetTime The time being rewound to, in seconds (s)
    */
-  public restoreFromHistory(historyPoint: PositionHistoryPoint): void {
-    this.positionProperty.value = historyPoint.position.copy();
-    this.lastTrailSampleTime = historyPoint.timestamp;
-  }
-
-  /**
-   * Find the closest position history point to a given time
-   * @param targetTime The time to find the closest history point for
-   * @returns The closest position history point or null if none found
-   */
-  public findClosestHistoryPoint(targetTime: number): PositionHistoryPoint | null {
-    // Find the closest point by timestamp
-    let closestPoint = this.positionHistory[0];
-    if (closestPoint === undefined) {
-      return null;
-    }
-    let minTimeDiff = Math.abs(closestPoint.timestamp - targetTime);
-
-    for (let i = 1; i < this.positionHistory.length; i++) {
-      const point = this.positionHistory[i];
-      if (point === undefined) {
-        continue;
-      }
-      const timeDiff = Math.abs(point.timestamp - targetTime);
-
-      if (timeDiff < minTimeDiff) {
-        minTimeDiff = timeDiff;
-        closestPoint = point;
-      }
-    }
-
-    return closestPoint;
+  public rewindTo(targetTime: number): void {
+    this.positionHistory = this.positionHistory.filter((point) => point.timestamp <= targetTime);
+    this.lastTrailSampleTime = this.positionHistory[this.positionHistory.length - 1]?.timestamp ?? 0;
   }
 }

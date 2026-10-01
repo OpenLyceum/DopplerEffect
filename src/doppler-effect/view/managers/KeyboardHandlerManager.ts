@@ -6,6 +6,7 @@
 
 import { type Property, Vector2 } from "scenerystack";
 import type { OneKeyStroke } from "scenerystack/scenery";
+import { PHYSICS } from "../../../DopplerEffectConstants.js";
 import { Scenario } from "../../model/DopplerEffectModel.js";
 import {
   DopplerEffectHotkeyData,
@@ -27,6 +28,17 @@ function isEditableTarget(target: EventTarget | null): boolean {
   }
   const tag = element.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || element.isContentEditable === true;
+}
+
+/**
+ * Whether the event targets a focused interactive element (a button, the draggable
+ * source/observer, a combo box, …). Such elements own Space and the arrow keys: Space
+ * activates a focused button (toggling play here too would cancel out the play/pause
+ * button), and a focused source/observer handles arrows through its own keyboard drag.
+ */
+function isFocusedInteractiveTarget(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  return !!element && element !== document.body && element.tabIndex >= 0;
 }
 
 /**
@@ -97,19 +109,14 @@ export class KeyboardHandlerManager {
     // focused helpers grouped by the kind of action each key triggers.
     const handleKeydown = (key: OneKeyStroke) => {
       this.handleObjectSelection(key, selectedObjectProperty, callbacks);
-
-      // Arrow key movement is only available while the simulation is playing
-      if (playProperty.value) {
-        this.handleMovement(
-          key,
-          selectedObjectProperty,
-          sourceVelocityProperty,
-          observerVelocityProperty,
-          sourceMovingProperty,
-          observerMovingProperty,
-        );
-      }
-
+      this.handleMovement(
+        key,
+        selectedObjectProperty,
+        sourceVelocityProperty,
+        observerVelocityProperty,
+        sourceMovingProperty,
+        observerMovingProperty,
+      );
       this.handleActions(key, callbacks, playProperty, microphoneEnabledProperty);
       this.handleScenarioPresets(key, scenarioProperty);
       this.handleAdjustments(key, emittedFrequencyProperty, soundSpeedProperty, frequencyRange, soundSpeedRange);
@@ -120,18 +127,21 @@ export class KeyboardHandlerManager {
     this.detachKeyboardHandlers();
     this.windowKeydownListener = (event: KeyboardEvent) => {
       // Don't hijack keys while the user is typing in an editable control.
-      if (isEditableTarget(event.target)) {
+      // Leave Ctrl/Cmd/Alt combinations (browser zoom, reload, …) to the browser.
+      if (isEditableTarget(event.target) || event.ctrlKey || event.metaKey || event.altKey) {
         return;
       }
-      // Shortcuts that have a help row are matched against DopplerEffectHotkeyData.
-      // Space (play/pause) and R (reset) are not in that dialog; they stay literal.
+      // Every shortcut is matched against DopplerEffectHotkeyData (the keyboard-help rows).
+      // A focused button / draggable object keeps Space and the movement keys for itself.
       const stroke = keyStrokeFromKeyboardEvent(event);
-      if (stroke) {
+      if (
+        stroke &&
+        !(
+          isFocusedInteractiveTarget(event.target) &&
+          (DopplerEffectHotkeyData.move.hasKeyStroke(stroke) || DopplerEffectHotkeyData.playPause.hasKeyStroke(stroke))
+        )
+      ) {
         handleKeydown(stroke);
-      }
-      const key = event.key.toLowerCase();
-      if (key === " " || key === "r") {
-        this.handleActions(key, callbacks, playProperty, microphoneEnabledProperty);
       }
     };
     window.addEventListener("keydown", this.windowKeydownListener);
@@ -191,15 +201,15 @@ export class KeyboardHandlerManager {
     // so downward movement uses ArrowDown only. "w"/"a"/"d" remain as WASD aliases
     // for the non-conflicting directions.
     if (key === "arrowLeft" || key === "a") {
-      velocity.x = -100.0;
+      velocity.x = -PHYSICS.KEYBOARD_SPEED;
     } else if (key === "arrowRight" || key === "d") {
-      velocity.x = 100.0;
+      velocity.x = PHYSICS.KEYBOARD_SPEED;
     }
 
     if (key === "arrowUp" || key === "w") {
-      velocity.y = 100.0;
+      velocity.y = PHYSICS.KEYBOARD_SPEED;
     } else if (key === "arrowDown") {
-      velocity.y = -100.0;
+      velocity.y = -PHYSICS.KEYBOARD_SPEED;
     }
 
     // Apply velocity if any keys were pressed
@@ -210,29 +220,27 @@ export class KeyboardHandlerManager {
   }
 
   /**
-   * Handle one-shot action keys: trail toggle, pause, reset, help, and microphone
+   * Handle one-shot action keys: trail toggle, play/pause, reset, help, and microphone
    */
   private handleActions(
-    key: OneKeyStroke | " ",
+    key: OneKeyStroke,
     callbacks: KeyboardCallbacks,
     playProperty: Property<boolean>,
     microphoneEnabledProperty: Property<boolean>,
   ): void {
-    if (key !== " ") {
-      if (DopplerEffectHotkeyData.toggleTrails.hasKeyStroke(key)) {
-        callbacks.onToggleTrails();
-      }
-      if (key === "r") {
-        callbacks.onReset();
-      }
-      if (DopplerEffectHotkeyData.toggleHelp.hasKeyStroke(key)) {
-        callbacks.onToggleHelp();
-      }
-      if (DopplerEffectHotkeyData.toggleMicrophone.hasKeyStroke(key)) {
-        microphoneEnabledProperty.value = !microphoneEnabledProperty.value;
-      }
+    if (DopplerEffectHotkeyData.toggleTrails.hasKeyStroke(key)) {
+      callbacks.onToggleTrails();
     }
-    if (key === " ") {
+    if (DopplerEffectHotkeyData.reset.hasKeyStroke(key)) {
+      callbacks.onReset();
+    }
+    if (DopplerEffectHotkeyData.toggleHelp.hasKeyStroke(key)) {
+      callbacks.onToggleHelp();
+    }
+    if (DopplerEffectHotkeyData.toggleMicrophone.hasKeyStroke(key)) {
+      microphoneEnabledProperty.value = !microphoneEnabledProperty.value;
+    }
+    if (DopplerEffectHotkeyData.playPause.hasKeyStroke(key)) {
       playProperty.value = !playProperty.value;
     }
   }

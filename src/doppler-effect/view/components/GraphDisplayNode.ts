@@ -192,9 +192,9 @@ export class GraphDisplayNode extends Node {
   }
 
   /**
-   * Get the right edge position of the graph
+   * Right edge of the graphs, in this node's parent coordinates
    */
-  public override get right(): number {
+  public get graphRight(): number {
     return this.emittedGraph.right;
   }
 

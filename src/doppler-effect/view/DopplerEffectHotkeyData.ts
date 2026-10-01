@@ -86,6 +86,22 @@ export const DopplerEffectHotkeyData = {
     keyboardHelpDialogPDOMLabelStringProperty: strings.a11y.toggleMicrophoneStringProperty,
   }),
 
+  playPause: new HotkeyData({
+    keys: ["space"],
+    repoName: REPO_NAME,
+    global: true,
+    keyboardHelpDialogLabelStringProperty: strings.controls.pauseResumeStringProperty,
+    keyboardHelpDialogPDOMLabelStringProperty: strings.a11y.controls.pauseResumeStringProperty,
+  }),
+
+  reset: new HotkeyData({
+    keys: ["r"],
+    repoName: REPO_NAME,
+    global: true,
+    keyboardHelpDialogLabelStringProperty: strings.controls.resetStringProperty,
+    keyboardHelpDialogPDOMLabelStringProperty: strings.a11y.controls.resetStringProperty,
+  }),
+
   toggleHelp: new HotkeyData({
     keys: ["h"],
     repoName: REPO_NAME,
@@ -110,6 +126,9 @@ const EVENT_KEY_TO_STROKE: Record<string, OneKeyStroke> = {
   M: "m",
   h: "h",
   H: "h",
+  r: "r",
+  R: "r",
+  " ": "space",
   a: "a",
   A: "a",
   d: "d",

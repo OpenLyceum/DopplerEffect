@@ -9,15 +9,12 @@
  * - All angles are in radians (rad)
  */
 
-import { Vector2 } from "scenerystack";
+import { Bounds2, Vector2 } from "scenerystack";
 import DopplerEffectNamespace from "./DopplerEffectNamespace.js";
-
-/** Corner radius shared by control panels and dialogs (px). */
-export const PANEL_CORNER_RADIUS = 5;
 
 // Definition for waveform data used in visualization
 export type WaveformPoint = {
-  t: number; // Time value in seconds (s), used for right-aligned visualization
+  t: number; // Normalized sample position in [0, 1) (dimensionless); the newest sample is rightmost
   y: number; // Raw amplitude value (dimensionless), will be scaled for display
 };
 
@@ -28,12 +25,17 @@ export const PHYSICS = {
   MIN_VELOCITY_MAG: 0.1, // Minimum velocity magnitude (m/s)
   POSITION_TO_VELOCITY_FACTOR: 0.1, // Factor to convert position difference to velocity (1/time)
   MAX_SPEED_FACTOR: 0.9, // Factor to limit maximum speed relative to sound speed
+  KEYBOARD_SPEED: 100, // Speed set by the keyboard movement keys (m/s)
 } as const;
 
 // Wave properties
 export const WAVE = {
   MAX_AGE: 10, // Maximum age of a wave in seconds (s)
 } as const;
+
+// Default region the source and observer may move within (in meters). The view
+// replaces it with the visible area once the layout is known.
+export const MOVEMENT_BOUNDS = new Bounds2(-5000, -3000, 5000, 3000);
 
 // Initial positions (in meters)
 export const INITIAL_POSITIONS = {
@@ -50,7 +52,6 @@ export const SOUND_DATA = {
 export const TIME_SPEED = {
   SLOW: 0.25, // Slow simulation speed (dimensionless)
   NORMAL: 1.0, // Normal simulation speed (dimensionless)
-  REVERSE: -1.0, // Reverse simulation speed (dimensionless)
   HISTORY_BUFFER_SIZE: 1000, // Number of simulation steps to store for time reversal
 } as const;
 
@@ -92,9 +93,9 @@ export const TRAIL = {
 } as const;
 
 DopplerEffectNamespace.register("DopplerEffectConstants", {
-  PANEL_CORNER_RADIUS,
   PHYSICS,
   WAVE,
+  MOVEMENT_BOUNDS,
   INITIAL_POSITIONS,
   SOUND_DATA,
   TIME_SPEED,

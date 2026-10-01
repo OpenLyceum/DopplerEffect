@@ -197,8 +197,8 @@ export class MicrophoneNode extends Node {
       // Play click sound
       this.clickSound.play();
 
-      // Hide ring after a short delay. Use stepTimer (not window.setTimeout) so the flash pauses
-      // with the sim and cannot fire after the node is removed from the scene graph.
+      // Hide ring after a short delay. stepTimer (not window.setTimeout) is driven by the
+      // sim's animation loop, so the callback runs in step with rendering.
       stepTimer.setTimeout(() => {
         this.detectionRing.visible = false;
       }, MICROPHONE.DETECTION_FLASH_DURATION);

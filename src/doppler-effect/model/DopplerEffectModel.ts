@@ -1,5 +1,6 @@
 import {
   BooleanProperty,
+  type Bounds2,
   createObservableArray,
   DerivedProperty,
   Enumeration,
@@ -15,6 +16,7 @@ import {
 } from "scenerystack";
 import {
   INITIAL_POSITIONS,
+  MOVEMENT_BOUNDS,
   PHYSICS,
   SCALE,
   SOUND_DATA,
@@ -39,12 +41,6 @@ export type Wave = {
   phaseAtEmission: number;
 };
 
-// Wave detection type for microphone
-export type WaveDetection = {
-  wave: Wave;
-  detectionTime: number;
-};
-
 // Position history points type — canonical definition lives in MovableObject.ts
 export type { PositionHistoryPoint } from "./MovableObject.js";
 
@@ -52,12 +48,14 @@ export type { PositionHistoryPoint } from "./MovableObject.js";
 // Waves are intentionally not snapshotted here: wave restoration is handled by
 // WaveGenerator's own history (see restoreSimulationState), so the source/observer
 // kinematic state plus the timestamp is all that needs to be retained.
-export type SimulationState = {
+type SimulationState = {
   time: number;
   sourcePosition: Vector2;
   observerPosition: Vector2;
   sourceVelocity: Vector2;
   observerVelocity: Vector2;
+  sourceMoving: boolean;
+  observerMoving: boolean;
 };
 
 export class Scenario extends EnumerationValue {
@@ -197,6 +195,10 @@ export class DopplerEffectModel {
   public readonly microphoneEnabledProperty: BooleanProperty; // Whether microphone is enabled
   public readonly waveDetectedProperty: BooleanProperty; // Emits when a wave is detected
 
+  // Region the source and observer may move within, in meters (m). The view keeps it
+  // matched to the visible area so moving objects stop at the screen edge.
+  public readonly movementBoundsProperty: Property<Bounds2>;
+
   // Source and observer objects
   private readonly source: MovableObject; // position in meters (m)
   private readonly observer: MovableObject; // position in meters (m)
@@ -237,15 +239,6 @@ export class DopplerEffectModel {
     return this.waveformManager.observedWaveformData;
   }
 
-  // Expose sound data for backward compatibility
-  public get emittedSoundData(): number[] {
-    return this.waveformManager.emittedSoundData;
-  }
-
-  public get observedSoundData(): number[] {
-    return this.waveformManager.observedSoundData;
-  }
-
   // Expose position history for view access
   public get sourceTrail(): PositionHistoryPoint[] {
     return this.source.getTrailPoints();
@@ -258,11 +251,12 @@ export class DopplerEffectModel {
   // Waveform update counter
   private waveformUpdateCounter: number = 0;
 
-  /**
-   * Constructor for the Doppler Effect DopplerEffectModel
-   */
   private readonly preferences: DopplerEffectPreferencesModel | undefined;
 
+  /**
+   * Constructor for the Doppler Effect DopplerEffectModel
+   * @param preferences Sim preferences; the microphone preference sets (and live-updates) the microphone state
+   */
   public constructor(preferences?: DopplerEffectPreferencesModel) {
     this.preferences = preferences;
     // Initialize physics properties
@@ -279,7 +273,9 @@ export class DopplerEffectModel {
 
     // Initialize microphone properties
     this.microphonePositionProperty = new Property<Vector2>(new Vector2(0, 20));
-    this.microphoneEnabledProperty = new BooleanProperty(dopplerEffectQueryParameters.microphoneEnabled);
+    this.microphoneEnabledProperty = new BooleanProperty(
+      preferences?.microphoneEnabledProperty.value ?? dopplerEffectQueryParameters.microphoneEnabled,
+    );
     this.waveDetectedProperty = new BooleanProperty(false);
 
     // Initialize simulation state
@@ -291,8 +287,9 @@ export class DopplerEffectModel {
     this.waves = createObservableArray<Wave>([]);
 
     // Initialize source and observer
-    this.source = new MovableObject(INITIAL_POSITIONS.SOURCE);
-    this.observer = new MovableObject(INITIAL_POSITIONS.OBSERVER);
+    this.movementBoundsProperty = new Property<Bounds2>(MOVEMENT_BOUNDS);
+    this.source = new MovableObject(INITIAL_POSITIONS.SOURCE, this.movementBoundsProperty);
+    this.observer = new MovableObject(INITIAL_POSITIONS.OBSERVER, this.movementBoundsProperty);
 
     // Link properties for direct access
     this.sourcePositionProperty = this.source.positionProperty;
@@ -330,9 +327,20 @@ export class DopplerEffectModel {
       this.applyScenario(scenario);
     });
 
-    this.timeSpeedProperty.lazyLink(() => {
-      // Just ensure latest data is used when time speed changes
-      this.updateWaveforms(0);
+    // Changing the preference updates the live microphone state immediately (not only on Reset All)
+    preferences?.microphoneEnabledProperty.lazyLink((enabled) => {
+      this.microphoneEnabledProperty.value = enabled;
+    });
+
+    // Keep both objects subsonic when the sound speed is lowered, matching the drag
+    // limit, so the Doppler denominator (c - v_s) can never reach zero or go negative.
+    this.soundSpeedProperty.lazyLink((soundSpeed) => {
+      const maxSpeed = soundSpeed * PHYSICS.MAX_SPEED_FACTOR;
+      for (const velocityProperty of [this.sourceVelocityProperty, this.observerVelocityProperty]) {
+        if (velocityProperty.value.magnitude > maxSpeed) {
+          velocityProperty.value = velocityProperty.value.withMagnitude(maxSpeed);
+        }
+      }
     });
   }
 
@@ -346,7 +354,7 @@ export class DopplerEffectModel {
     this.emittedFrequencyProperty.reset();
     this.timeSpeedProperty.reset();
     this.simulationTimeProperty.reset();
-    this.observedFrequencyProperty.value = PHYSICS.EMITTED_FREQ;
+    this.observedFrequencyProperty.reset();
     this.playProperty.reset();
 
     // Reset microphone properties
@@ -360,10 +368,6 @@ export class DopplerEffectModel {
     // Reset source and observer (also clears their trail history)
     this.source.reset(INITIAL_POSITIONS.SOURCE);
     this.observer.reset(INITIAL_POSITIONS.OBSERVER);
-
-    // Reset velocities
-    this.sourceVelocityProperty.reset();
-    this.observerVelocityProperty.reset();
 
     this.waveformUpdateCounter = 0;
 
@@ -411,12 +415,12 @@ export class DopplerEffectModel {
     this.simulationTimeProperty.value += modelDt; // in seconds (s)
     const currentTime = this.simulationTimeProperty.value;
 
-    // Store simulation state for time reversal
-    this.storeSimulationState();
-
     // Update positions (also records trail history internally)
     this.source.updatePosition(modelDt, currentTime);
     this.observer.updatePosition(modelDt, currentTime);
+
+    // Store the state reached at currentTime for time reversal
+    this.storeSimulationState();
 
     // Generate and update waves
     this.waveGenerator.generateWaves();
@@ -436,25 +440,29 @@ export class DopplerEffectModel {
    * @param modelDt - elapsed time in seconds (model time) (s)
    */
   private handleTimeReversal(modelDt: number): void {
-    // Calculate target time (negative dt means going backward)
-    const targetTime = this.simulationTimeProperty.value + modelDt;
+    const currentTime = this.simulationTimeProperty.value;
 
-    // Find the closest state in history
-    const closestState = this.findClosestState(targetTime);
-
-    if (closestState) {
-      // Restore the simulation to this state
-      this.restoreSimulationState(closestState);
-
-      // Update simulation time
-      this.simulationTimeProperty.value = targetTime;
-
-      // Update waveforms
-      this.updateWaveforms(modelDt);
-    } else {
-      // No history available, just update time
-      this.simulationTimeProperty.value = targetTime;
+    // Find the recorded state closest to the target time (negative dt means going backward).
+    // Only strictly earlier states count, so stepping back stops at the start of the history
+    // instead of driving the clock into negative / unrecorded time.
+    const closestState = this.findClosestEarlierState(currentTime + modelDt, currentTime);
+    if (closestState === null) {
+      return;
     }
+
+    // Forget everything recorded after the restored time, so playing forward again
+    // records a single consistent timeline (no stale future states, trail or waves).
+    this.simulationStateHistory = this.simulationStateHistory.filter((state) => state.time <= closestState.time);
+    this.source.rewindTo(closestState.time);
+    this.observer.rewindTo(closestState.time);
+
+    // Restore the simulation to this state; the clock lands exactly on the snapshot time
+    // so positions, waves and time agree.
+    this.restoreSimulationState(closestState);
+    this.simulationTimeProperty.value = closestState.time;
+
+    // Update waveforms
+    this.updateWaveforms(closestState.time - currentTime);
   }
 
   /**
@@ -468,43 +476,43 @@ export class DopplerEffectModel {
       observerPosition: this.observerPositionProperty.value.copy(),
       sourceVelocity: this.sourceVelocityProperty.value.copy(),
       observerVelocity: this.observerVelocityProperty.value.copy(),
+      sourceMoving: this.sourceMovingProperty.value,
+      observerMoving: this.observerMovingProperty.value,
     };
 
     // Add to history
     this.simulationStateHistory.push(currentState);
 
-    // Limit history size
+    // Limit history size, and let the wave history forget waves no restorable time needs
     if (this.simulationStateHistory.length > TIME_SPEED.HISTORY_BUFFER_SIZE) {
       this.simulationStateHistory.shift();
+    }
+    const oldestState = this.simulationStateHistory[0];
+    if (oldestState !== undefined) {
+      this.waveGenerator.pruneHistory(oldestState.time);
     }
   }
 
   /**
-   * Find the closest simulation state to a target time
+   * Find the simulation state closest to a target time among those recorded before a cutoff
+   * (so a step back always moves, even when the step is smaller than the recorded spacing)
    * @param targetTime - The time to find the closest state for
+   * @param beforeTime - Only states strictly earlier than this time are considered
    * @returns The closest simulation state or null if none found
    */
-  private findClosestState(targetTime: number): SimulationState | null {
-    // Find the closest state by time
-    let closestState = this.simulationStateHistory[0];
-    if (closestState === undefined) {
-      return null;
-    }
-    let minTimeDiff = Math.abs(closestState.time - targetTime);
-
-    for (let i = 1; i < this.simulationStateHistory.length; i++) {
-      const state = this.simulationStateHistory[i];
-      if (state === undefined) {
+  private findClosestEarlierState(targetTime: number, beforeTime: number): SimulationState | null {
+    let closestState: SimulationState | null = null;
+    let minTimeDiff = Number.POSITIVE_INFINITY;
+    for (const state of this.simulationStateHistory) {
+      if (state.time >= beforeTime) {
         continue;
       }
       const timeDiff = Math.abs(state.time - targetTime);
-
       if (timeDiff < minTimeDiff) {
         minTimeDiff = timeDiff;
         closestState = state;
       }
     }
-
     return closestState;
   }
 
@@ -518,9 +526,11 @@ export class DopplerEffectModel {
     this.observerPositionProperty.value = state.observerPosition.copy();
     this.sourceVelocityProperty.value = state.sourceVelocity.copy();
     this.observerVelocityProperty.value = state.observerVelocity.copy();
+    this.sourceMovingProperty.value = state.sourceMoving;
+    this.observerMovingProperty.value = state.observerMoving;
 
-    // Restore waves
-    this.waveGenerator.restoreWavesFromHistory(state.time);
+    // Rewind the emission clock and rebuild the waves alive at that time
+    this.waveGenerator.rewindTo(state.time);
   }
 
   /**
@@ -544,7 +554,6 @@ export class DopplerEffectModel {
       this.waveformManager.updateEmittedWaveform(
         this.emittedFrequencyProperty.value,
         dt * updateInterval, // Compensate for skipped updates
-        timeSpeedValue,
       );
 
       // Find waves affecting the observer
@@ -555,10 +564,13 @@ export class DopplerEffectModel {
         this.simulationTimeProperty.value,
       );
 
-      // If no waves have reached observer yet, clear observed waveform
+      // If no waves have reached observer yet, clear observed waveform. With nothing
+      // arriving there is no shift to report, so the observed frequency falls back to the
+      // emitted one rather than keeping a stale value from a previous configuration.
       const firstWaveAtObserver = wavesAtObserver[0];
       if (firstWaveAtObserver === undefined) {
         this.waveformManager.clearObservedWaveform();
+        this.observedFrequencyProperty.value = this.emittedFrequencyProperty.value;
         return;
       }
 
@@ -592,13 +604,7 @@ export class DopplerEffectModel {
 
       // Update observed waveform using stationary frequency since we don't want to overcount the Doppler effect
       // the change in phase is due to the change in position of the observer
-      this.waveformManager.updateObservedWaveform(
-        stationaryFrequency,
-        phaseAtArrival,
-        timeSinceArrival,
-        timeSpeedValue,
-        dt,
-      );
+      this.waveformManager.updateObservedWaveform(stationaryFrequency, phaseAtArrival, timeSinceArrival, dt);
     }
   }
 
@@ -629,10 +635,12 @@ export class DopplerEffectModel {
     // Reset components
     this.waveGenerator.reset();
     this.waveformManager.reset(SOUND_DATA.ARRAY_SIZE);
+    this.simulationStateHistory = [];
+    this.observedFrequencyProperty.value = this.emittedFrequencyProperty.value;
 
-    // Reset positions
-    this.sourcePositionProperty.value = INITIAL_POSITIONS.SOURCE;
-    this.observerPositionProperty.value = INITIAL_POSITIONS.OBSERVER;
+    // Reset positions (also clears trails, so no line is drawn from the old positions)
+    this.source.reset(INITIAL_POSITIONS.SOURCE);
+    this.observer.reset(INITIAL_POSITIONS.OBSERVER);
 
     // Configure velocities for the specific scenario
     this.configureScenarioVelocities(scenario);

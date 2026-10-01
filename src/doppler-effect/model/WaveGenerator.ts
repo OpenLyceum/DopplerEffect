@@ -21,7 +21,6 @@ export class WaveGenerator {
   // Microphone detection state
   private lastDetectionTime: number = 0;
   private static readonly DETECTION_COOLDOWN = 0.01; // seconds between detections
-  private static readonly DETECTION_TOLERANCE = 2; // meters
 
   /**
    * Create a new WaveGenerator
@@ -109,7 +108,9 @@ export class WaveGenerator {
    * and 60 fps a front advances ~5.7 m per frame, larger than the detection band), this
    * detects the front *crossing* the position: the front was inside the position last
    * step (radius < distance) and has reached or passed it this step (radius >= distance).
-   * A small static tolerance is kept as a fallback for the dt ~ 0 case (paused/stepped).
+   * Each front therefore registers exactly once. (A static tolerance band on top of the
+   * sweep made a front sitting just short of the position register on two consecutive
+   * frames, doubling the click.)
    *
    * Returns true at most once per DETECTION_COOLDOWN interval.
    * @param position Position to check in meters (m)
@@ -126,12 +127,8 @@ export class WaveGenerator {
       const wave = this.waves.get(i);
       const distance = position.distance(wave.position);
       const previousRadius = wave.radius - stepAdvance;
-      // True if the expanding front swept across the position during this step,
-      // or (fallback) is essentially sitting on it when no time elapsed.
-      if (
-        (previousRadius < distance && distance <= wave.radius) ||
-        Math.abs(distance - wave.radius) < WaveGenerator.DETECTION_TOLERANCE
-      ) {
+      // True if the expanding front swept across the position during this step
+      if (previousRadius < distance && distance <= wave.radius) {
         this.lastDetectionTime = currentTime;
         return true;
       }
@@ -140,20 +137,54 @@ export class WaveGenerator {
   }
 
   /**
-   * Reset the wave generator state
+   * Reset the wave generator state. The emission clock restarts at the current
+   * simulation time, so the next wave follows one interval from now rather than
+   * every interval since t = 0 being emitted at once.
    */
   public reset(): void {
-    this.lastWaveTime = 0;
-    this.lastDetectionTime = 0;
+    this.lastWaveTime = this.getSimulationTime();
+    this.lastDetectionTime = this.getSimulationTime();
     this.waves.clear();
     this.waveHistory = [];
+  }
+
+  /**
+   * Drop history entries that can no longer be restored: waves born more than
+   * WAVE.MAX_AGE before the earliest restorable time are dead at every such time.
+   * @param earliestRestorableTime Oldest time time-reversal can return to, in seconds (s)
+   */
+  public pruneHistory(earliestRestorableTime: number): void {
+    const cutoff = earliestRestorableTime - WAVE.MAX_AGE;
+    let firstKept = 0;
+    while (firstKept < this.waveHistory.length && (this.waveHistory[firstKept]?.birthTime ?? 0) < cutoff) {
+      firstKept++;
+    }
+    if (firstKept > 0) {
+      this.waveHistory.splice(0, firstKept);
+    }
+  }
+
+  /**
+   * Rewind the generator to an earlier time: forget waves emitted after it and move the
+   * emission clock back by whole intervals, so replaying forward re-emits a gap-free train
+   * instead of waiting for the old (future) clock and keeping duplicate fronts in history.
+   * @param targetTime The time being rewound to, in seconds (s)
+   */
+  public rewindTo(targetTime: number): void {
+    this.waveHistory = this.waveHistory.filter((wave) => wave.birthTime <= targetTime);
+    const waveInterval = 1.0 / this.getEmittedFrequency(); // in seconds (s)
+    while (this.lastWaveTime > targetTime) {
+      this.lastWaveTime -= waveInterval;
+    }
+    this.lastDetectionTime = Math.min(this.lastDetectionTime, targetTime);
+    this.restoreWavesFromHistory(targetTime);
   }
 
   /**
    * Restore waves from history for a specific time
    * @param targetTime The time to restore waves to
    */
-  public restoreWavesFromHistory(targetTime: number): void {
+  private restoreWavesFromHistory(targetTime: number): void {
     // Clear current waves
     this.waves.clear();
 

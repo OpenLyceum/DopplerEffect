@@ -2,18 +2,21 @@
  * DragHandlerManager.ts
  *
  * Manages a single drag handler for an object in the Doppler Effect simulation.
- * Dragging sets desired velocity from pointer/keyboard direction (not 1:1 position) —
- * a skill "custom mapping" case wrapped in one RichDragListener for a11y.
+ * Dragging sets a velocity rather than writing the position 1:1 — a skill "custom
+ * mapping" case wrapped in one RichDragListener for a11y:
+ * - pointer: velocity proportional to the pointer's offset from the object;
+ * - keyboard (object focused): arrow keys set a PHYSICS.KEYBOARD_SPEED velocity in the
+ *   pressed direction that persists after release, exactly like the global arrow keys
+ *   (see KeyboardHandlerManager), so both keyboard paths behave the same.
  */
 
 import {
-  type Bounds2,
   DerivedProperty,
   type ModelViewTransform2,
   type Node,
-  Property,
-  type ReadOnlyProperty,
+  type Property,
   RichDragListener,
+  type TReadOnlyProperty,
   Vector2,
 } from "scenerystack";
 import { PHYSICS } from "../../../DopplerEffectConstants.js";
@@ -23,23 +26,17 @@ import { PHYSICS } from "../../../DopplerEffectConstants.js";
  */
 export class DragHandlerManager {
   private readonly modelViewTransform: ModelViewTransform2;
-  private readonly dragBounds: Bounds2;
-  private richDragListener: RichDragListener | null = null;
   private dragOffset: Vector2 = new Vector2(0, 0);
-  private readonly maxSpeedProperty: ReadOnlyProperty<number>;
+  private readonly maxSpeedProperty: TReadOnlyProperty<number>;
 
   /**
    * Constructor for the DragHandlerManager
    *
    * @param modelViewTransform - Transform between model and view coordinates
-   * @param layoutBounds - View bounds for constraining drag
    * @param soundSpeedProperty - Property containing the current sound speed
    */
-  constructor(modelViewTransform: ModelViewTransform2, layoutBounds: Bounds2, soundSpeedProperty: Property<number>) {
+  constructor(modelViewTransform: ModelViewTransform2, soundSpeedProperty: TReadOnlyProperty<number>) {
     this.modelViewTransform = modelViewTransform;
-
-    // drag bounds are the same as the layout bounds
-    this.dragBounds = layoutBounds;
 
     // Create derived property for max speed based on sound speed
     this.maxSpeedProperty = new DerivedProperty(
@@ -71,12 +68,12 @@ export class DragHandlerManager {
       return desiredVelocity;
     };
 
-    // Custom mapping: drag direction → velocity (not positionProperty writes).
-    this.richDragListener = new RichDragListener({
+    // Custom mapping: drag direction → velocity (not positionProperty writes). Movement
+    // is limited by the model's movement bounds, so no drag bounds are needed here.
+    const richDragListener = new RichDragListener({
       transform: this.modelViewTransform,
       dragListenerOptions: {
         targetNode: targetNode,
-        dragBoundsProperty: new Property(this.dragBounds),
         allowTouchSnag: true,
         start: (event) => {
           onSelected();
@@ -92,37 +89,19 @@ export class DragHandlerManager {
         },
       },
       keyboardDragListenerOptions: {
-        dragSpeed: 60,
-        shiftDragSpeed: 20,
         start: () => {
           onSelected();
         },
         drag: (_event, listener) => {
-          const desiredVelocity = clampVelocity(listener.modelDelta.timesScalar(PHYSICS.POSITION_TO_VELOCITY_FACTOR));
-          velocityProperty.value = desiredVelocity;
-          movingProperty.value = desiredVelocity.magnitude > 1e-6;
-        },
-        end: () => {
-          velocityProperty.value = new Vector2(0, 0);
-          movingProperty.value = false;
+          // Only the direction of the keyboard step matters; its speed is fixed.
+          if (listener.modelDelta.magnitude > 0) {
+            velocityProperty.value = clampVelocity(listener.modelDelta.withMagnitude(PHYSICS.KEYBOARD_SPEED));
+            movingProperty.value = true;
+          }
         },
       },
     });
 
-    targetNode.addInputListener(this.richDragListener);
-  }
-
-  /**
-   * Remove the drag handler from its target node
-   */
-  public detachDragHandler(): void {
-    if (this.richDragListener) {
-      const targetNode = this.richDragListener.dragListener.targetNode;
-      if (targetNode) {
-        targetNode.removeInputListener(this.richDragListener);
-        this.richDragListener.dispose();
-      }
-      this.richDragListener = null;
-    }
+    targetNode.addInputListener(richDragListener);
   }
 }

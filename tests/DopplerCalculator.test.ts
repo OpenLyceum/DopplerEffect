@@ -27,6 +27,12 @@ describe("DopplerCalculator.calculateObservedFrequency", () => {
     expect(f).toBeCloseTo(SOURCE_FREQ, 6);
   });
 
+  it("returns the emitted frequency when the observer sits on the emission point", () => {
+    const wave = makeWave(new Vector2(50, 0), new Vector2(30, 0));
+    const f = calc.calculateObservedFrequency(wave, new Vector2(50, 0), new Vector2(10, 0), SOUND_SPEED);
+    expect(f).toBe(SOURCE_FREQ);
+  });
+
   it("raises the observed frequency when the source moves toward the observer", () => {
     // Source at origin moving in +x toward an observer on the +x axis.
     const sourceSpeed = 30;

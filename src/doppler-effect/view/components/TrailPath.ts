@@ -118,13 +118,4 @@ export class TrailPath extends Path {
     // Apply the gradient
     this.stroke = gradient;
   }
-
-  /**
-   * Reset the trail
-   * Clears the trail shape
-   */
-  public reset(): void {
-    // Reset trail to empty shape
-    this.shape = new Shape();
-  }
 }

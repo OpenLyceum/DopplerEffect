@@ -1,8 +1,5 @@
 {
   "title": "Efecto Doppler",
-  "source": "Fuente",
-  "observer": "Observador",
-  "selectedObject": "Seleccionado: {{object}}",
   "controls": {
     "values": "Valores",
     "velocityArrows": "Flechas de velocidad",
@@ -21,7 +18,6 @@
   "graphs": {
     "emittedSound": "Sonido emitido",
     "observedSound": "Sonido observado",
-    "emittedFrequency": "Frec. emitida: {{value}} Hz",
     "observedFrequency": "Frec. observada: {{value}} Hz"
   },
   "shift": {
@@ -29,8 +25,6 @@
     "redshift": "Desplazado al rojo (alejándose)"
   },
   "help": {
-    "dragAndDrop": "Haz clic y arrastra la fuente (roja) o el observador (verde) para moverlos",
-    "keyboardControls": "Controles de teclado:",
     "sections": {
       "navigation": "Navegación",
       "simulationControls": "Controles de simulación",
@@ -63,7 +57,6 @@
     },
     "toggleMotionTrails": "Mostrar u ocultar las estelas de movimiento que muestran las trayectorias de los objetos.",
     "toggleMicrophone": "Activar o desactivar el micrófono",
-    "dragMicrophone": "Arrastra el micrófono para colocarlo en cualquier lugar de la simulación.",
     "a11y": {
       "objectSelection": {
         "selectSource": "Presiona la tecla S para seleccionar la fuente de sonido y moverla con las teclas de flecha o WASD.",
@@ -71,7 +64,7 @@
         "moveObject": "Usa las teclas de flecha o WASD para mover el objeto seleccionado en cualquier dirección."
       },
       "controls": {
-        "pauseResume": "Presiona Espacio o Enter para pausar o reanudar la simulación.",
+        "pauseResume": "Presiona Espacio para pausar o reanudar la simulación.",
         "reset": "Presiona la tecla R para reiniciar toda la simulación a su estado inicial.",
         "toggleHelp": "Presiona la tecla H para mostrar u ocultar este cuadro de ayuda."
       },

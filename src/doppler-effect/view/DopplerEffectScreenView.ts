@@ -16,7 +16,10 @@ import {
 } from "scenerystack";
 import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
-import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/DopplerEffectButtonOptions.js";
+import {
+  FLAT_RESET_ALL_BUTTON_OPTIONS,
+  TIME_CONTROL_SPEED_RADIO_OPTIONS,
+} from "../../common/DopplerEffectButtonOptions.js";
 import DopplerEffectColors from "../../DopplerEffectColors.js";
 import { SCALE } from "../../DopplerEffectConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -48,6 +51,9 @@ const UI = {
   TRAIL_WIDTH: 2,
 } as const;
 
+// Inset of the movement bounds from the visible area, in meters (m)
+const MOVEMENT_BOUNDS_INSET = 200;
+
 /**
  * View for the Doppler Effect simulation
  *
@@ -58,7 +64,7 @@ const UI = {
  * - Handling user input and controls
  *
  * The view uses a ModelViewTransform2 to convert between:
- * - Model space: Physical coordinates in meters (±100m in both dimensions)
+ * - Model space: Physical coordinates in meters (0.1 px per meter, so about ±5000 m across)
  * - View space: Screen coordinates in pixels
  */
 export type DopplerEffectScreenViewOptions = ScreenViewOptions;
@@ -170,6 +176,12 @@ export class DopplerEffectScreenView extends ScreenView {
       return this.modelViewTransform.viewToModelBounds(visibleBounds);
     });
 
+    // Moving objects stop at the edge of the visible area (inset so they stay grabbable)
+    modelBoundsProperty.link((modelBounds) => {
+      const inset = modelBounds.eroded(MOVEMENT_BOUNDS_INSET);
+      this.model.movementBoundsProperty.value = inset.width > 0 && inset.height > 0 ? inset : modelBounds;
+    });
+
     this.gridNode = new GridNode(this.modelViewTransform, this.visibleGridProperty, modelBoundsProperty, {
       majorGridSize: 1000, // 1000 meters between major grid lines
       minorLinesPerMajorLine: 4, // 4 minor lines between each major line
@@ -247,16 +259,8 @@ export class DopplerEffectScreenView extends ScreenView {
     // Initialize managers
     this.waveManager = new WaveManager(this.waveLayer, this.modelViewTransform, DopplerEffectColors.waveColorProperty);
 
-    this.sourceDragManager = new DragHandlerManager(
-      this.modelViewTransform,
-      this.layoutBounds,
-      this.model.soundSpeedProperty,
-    );
-    this.observerDragManager = new DragHandlerManager(
-      this.modelViewTransform,
-      this.layoutBounds,
-      this.model.soundSpeedProperty,
-    );
+    this.sourceDragManager = new DragHandlerManager(this.modelViewTransform, this.model.soundSpeedProperty);
+    this.observerDragManager = new DragHandlerManager(this.modelViewTransform, this.model.soundSpeedProperty);
 
     this.keyboardManager = new KeyboardHandlerManager();
 
@@ -304,7 +308,7 @@ export class DopplerEffectScreenView extends ScreenView {
       this.model.soundSpeedRange,
       this.model.frequencyRange,
       {
-        graphRight: this.graphDisplayNode.right,
+        graphRight: this.graphDisplayNode.graphRight,
         graphBottom: this.graphDisplayNode.observedGraphBottom,
       },
     );
@@ -355,6 +359,7 @@ export class DopplerEffectScreenView extends ScreenView {
 
     // Add time control node
     const timeControlNode = new TimeControlNode(this.model.playProperty, {
+      ...TIME_CONTROL_SPEED_RADIO_OPTIONS,
       tagName: "div",
       timeSpeedProperty: this.model.timeSpeedProperty,
       playPauseStepButtonOptions: {
@@ -374,12 +379,6 @@ export class DopplerEffectScreenView extends ScreenView {
             this.model.step(1 / 60, true);
           },
           accessibleName: a11yControls.stepForwardStringProperty,
-        },
-      },
-
-      speedRadioButtonGroupOptions: {
-        labelOptions: {
-          fill: DopplerEffectColors.textColorProperty,
         },
       },
     });
@@ -406,6 +405,7 @@ export class DopplerEffectScreenView extends ScreenView {
           this.keyboardHelpVisibleProperty.value = !this.keyboardHelpVisibleProperty.value;
         },
         onReset: () => {
+          this.interruptSubtreeInput(); // Stop any ongoing interactions
           this.model.reset();
           this.reset();
         },

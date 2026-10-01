@@ -19,8 +19,13 @@ export class DopplerCalculator {
     observerVelocity: Vector2,
     soundSpeed: number,
   ): number {
-    // Calculate unit vector from source to observer (dimensionless)
-    const direction = observerPosition.minus(wave.position).normalized(); // dimensionless unit vector
+    // Calculate unit vector from source to observer (dimensionless). An observer sitting
+    // exactly on the emission point has no line of sight, so no shift is defined.
+    const separation = observerPosition.minus(wave.position); // in meters (m)
+    if (separation.magnitude === 0) {
+      return wave.sourceFrequency;
+    }
+    const direction = separation.normalized(); // dimensionless unit vector
 
     // Calculate velocity components along the direction vector
     const sourceVelocityComponent = wave.sourceVelocity.dot(direction); // in meters per second (m/s)

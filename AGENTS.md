@@ -27,16 +27,24 @@ Physics for educators: `doc/model.md`. Architecture: `doc/implementation-notes.m
 | `sourceProperty` / `observerProperty` | `MovableObject` | position, velocity, frequency |
 | `scenarioProperty` | `EnumerationProperty<Scenario>` | preset configurations (Free Play, approaching, …) |
 | `soundSpeedProperty` | `NumberProperty` | medium speed *c* |
-| `isPlayingProperty` | `BooleanProperty` | play/pause |
-| `timeSpeedProperty` | `Property<TimeSpeed>` | simulation rate |
-| `showTrailsProperty` | `BooleanProperty` | motion trails |
+| `playProperty` | `BooleanProperty` | play/pause |
+| `timeSpeedProperty` | `EnumerationProperty<TimeSpeed>` | NORMAL / SLOW |
+| `movementBoundsProperty` | `Property<Bounds2>` | region source/observer may move in (view keeps it = visible area) |
 | `waves` | `ObservableArray<Wave>` | expanding wavefronts |
+
+Trail / grid / value visibility are view-only Properties on `DopplerEffectScreenView`.
 
 ### Stepping & numerics
 
 - Observed frequency: `f' = f · (v − vₒ) / (v − vₛ)` where `vₒ` and `vₛ` are velocity components **along the line of sight**.
-- Each wavefront expands from the source position **at emission**; radius grows at `c`. Wave restoration on time-scrub uses `WaveGenerator`'s own history (not snapshotted in `SimulationState`).
+- Each wavefront expands from the source position **at emission**; radius grows at `c`. Wave restoration on time-scrub uses `WaveGenerator`'s own history (not snapshotted in `SimulationState`), pruned to what the 1000-step state history can still restore.
+- **Step backward** (the only reverse path; `TimeSpeed` has no negative rate) restores the nearest *earlier* snapshot and truncates everything after it (states, trails, wave history, emission clock), so replaying forward is a single timeline.
+- Sources/observers stop at `movementBoundsProperty`; velocities are clamped to `0.9·c` when *c* is lowered (no supersonic denominator).
 - Keyboard presets `0`–`6` load scenario configurations.
+
+### Keyboard
+
+All shortcuts live in `DopplerEffectHotkeyData` (one window `keydown` listener in `KeyboardHandlerManager`; the help dialog rows come from the same data). Ctrl/Cmd/Alt combos are ignored. When a focused interactive element (button, draggable object, …) is the target, Space and the movement keys are left to it; a focused source/observer's own keyboard drag sets the same persistent `PHYSICS.KEYBOARD_SPEED` velocity as the global arrow keys.
 
 ## Accessibility
 
@@ -49,7 +57,7 @@ frequency + play state) via the `screenSummaryContent` super-option, and orders 
 ## Compliance carve-outs
 
 - **Root constants:** `src/DopplerEffectConstants.ts` (sim-wide); no separate nested primary constants module.
-- **Domain clock:** `timeSpeedProperty` (including reverse) and simulation-state history drive the clock instead of composing fleet-standard `TimeModel`.
+- **Domain clock:** `timeSpeedProperty` plus the simulation-state history (for the step-backward button) drive the clock instead of composing fleet-standard `TimeModel`.
 
 
 ### `package.json` overrides
@@ -78,6 +86,7 @@ Fleet-standard Vitest layout:
 Actual specs:
 
 - `tests/DopplerCalculator.test.ts`
+- `tests/DopplerEffectModel.test.ts` — scenario/emission, mic detection, bounds, history, step-back regressions
 - `tests/WaveGenerator.test.ts`
 - `tests/memory-leak.test.ts`
 
@@ -94,4 +103,4 @@ npm test
 
 ## Development notes
 
-- Microphone node listens at an arbitrary point (can differ from observer icon). Motion trails and projector mode supported via preferences.
+- Microphone node listens at an arbitrary point (can differ from observer icon). The Preferences → Simulation microphone toggle sets the live microphone state (and its Reset All default). Projector mode via Preferences → Visual.

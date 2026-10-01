@@ -22,9 +22,6 @@ const TEXT_MAX_WIDTH = 1000;
  * Component that renders the keyboard help instructions for the simulation in a structured format
  */
 export class KeyboardShortcutsNode extends Node {
-  // Store reference to visibility property
-  private readonly visibilityControlProperty: Property<boolean>;
-
   /**
    * Constructor for the KeyboardShortcutsNode
    *
@@ -34,8 +31,6 @@ export class KeyboardShortcutsNode extends Node {
     super({
       visibleProperty: options.visibleProperty,
     });
-
-    this.visibilityControlProperty = options.visibleProperty;
 
     // Create background panel
     const backgroundPanel = new Rectangle(0, 0, 1, 1, {
@@ -68,16 +63,7 @@ export class KeyboardShortcutsNode extends Node {
 
     // Align icons within each group
     KeyboardHelpSection.alignHelpSectionIcons(left);
-    const visibilitySection = right[0];
-    if (visibilitySection) {
-      KeyboardHelpSection.alignHelpSectionIcons([visibilitySection]);
-    }
-  }
-
-  /**
-   * Toggle visibility of the keyboard shortcuts
-   */
-  public toggleVisibility(): void {
-    this.visibilityControlProperty.value = !this.visibilityControlProperty.value;
+    // Align the sim's own right-column sections (not the standard basic-actions one)
+    KeyboardHelpSection.alignHelpSectionIcons(right.slice(0, -1));
   }
 }

@@ -44,13 +44,18 @@ drags update `MovableObject` position Properties on the model.
   (`WaveGenerator`), shift (`DopplerCalculator`), and waveforms (`WaveformManager`). Keeps unit-tested
   pieces isolated.
 - **Emission clock.** `WaveGenerator` advances `lastWaveTime` by whole 1/f₀ intervals (no per-frame
-  drift) and stores each front in `waveHistory` for time reversal.
-- **Microphone crossing.** Detection uses front **sweep** (previous radius < distance ≤ current radius)
-  so fast fronts are not missed between frames.
+  drift) and stores each front in `waveHistory` for time reversal. `reset()` restarts the clock at the
+  current time (a scenario change mid-run must not emit every interval since t = 0), and the history is
+  pruned to waves a restorable time can still need.
+- **Microphone crossing.** Detection uses front **sweep** only (previous radius < distance ≤ current radius)
+  so fast fronts are not missed between frames and each front clicks exactly once (no static tolerance band).
 - **Scenario presets.** `Scenario` enumeration + `SCENARIO_CONFIGS` set initial velocities and moving
   flags without full reset; keyboard 0–6 loads scenarios.
-- **Time reversal.** Negative Δt restores nearest kinematic snapshot and `WaveGenerator.restoreWavesFromHistory`;
+- **Time reversal.** The step-backward button (negative Δt) restores the nearest earlier kinematic snapshot,
+  truncates later states / trail points / waves, and rewinds the emission clock (`WaveGenerator.rewindTo`);
   waves are not duplicated in `SimulationState` snapshots.
+- **Movement bounds.** `MovableObject` clamps to the model's `movementBoundsProperty` (the view feeds the
+  visible area, inset 200 m) and stops on contact, so objects can't drift out of view.
 - **Waveform update throttling.** At slow time speed, waveform buffers update every N frames to keep
   display stable.
 
@@ -59,19 +64,19 @@ drags update `MovableObject` position Properties on the model.
 - `step(dt)` applies `modelDt = dt · SCALE.TIME · timeSpeed`, updates positions, generates/ages waves,
   runs Doppler + waveform update, sets `waveDetectedProperty` for the mic.
 - `WaveManager` reads `waves` ObservableArray; no physics in the view.
-- `Sound.ts` drives audio from observed frequency when enabled.
+- `Sound.ts` plays the synthesized microphone click (tambo `SoundGenerator`, muted by the sim sound toggle).
 - Colors documented in `DopplerEffectColors.ts` to avoid conflating UI colours with shift terminology.
 
 ## Disposal conventions
 
-Most nodes and Property links are screen-lifetime. `DragHandlerManager` includes dispose cleanup for
-pointer listeners. Expand `tests/memory-leak.test.ts` if adding dynamic layers or scenario rebuild paths.
+Most nodes and Property links are screen-lifetime (the drag listeners included). Expand `tests/memory-leak.test.ts` if adding dynamic layers or scenario rebuild paths.
 
 ## Testing
 
 `npm test` (vitest, `--expose-gc`):
 
 - `tests/DopplerCalculator.test.ts` — Doppler formula and arrival-time logic
+- `tests/DopplerEffectModel.test.ts` — scenario switching, mic once-per-front, bounds, subsonic clamp, history, step-back
 - `tests/WaveGenerator.test.ts` — emission cadence, aging, crossing detection
 - `tests/memory-leak.test.ts` — fleet WeakRef/GC regression
 

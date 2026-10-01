@@ -104,13 +104,6 @@ export class MoveableObjectView extends Node {
   }
 
   /**
-   * Reset the object's trail
-   */
-  public resetTrail(): void {
-    this.trailPath.reset();
-  }
-
-  /**
    * Get the object node for drag handling
    */
   public getObjectNode(): Circle {

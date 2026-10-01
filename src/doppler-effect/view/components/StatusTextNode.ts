@@ -77,7 +77,7 @@ export class StatusTextNode extends Node {
         fill: options.textColorProperty,
       },
       visibleProperty: visibleValuesProperty,
-      valuePattern: statusStringProperties.observedFrequencyPatternStringProperty.value,
+      valuePattern: statusStringProperties.observedFrequencyPatternStringProperty,
       backgroundFill: "transparent",
       backgroundStroke: null,
       xMargin: 0,
@@ -85,13 +85,19 @@ export class StatusTextNode extends Node {
     });
 
     // Derived property for shift status text content
+    // (the strings are dependencies so a locale switch updates the text immediately)
     const shiftStatusStringProperty = new DerivedProperty(
-      [observedFrequencyProperty, emittedFrequencyProperty],
-      (observed, emitted) => {
+      [
+        observedFrequencyProperty,
+        emittedFrequencyProperty,
+        statusStringProperties.blueshiftStringProperty,
+        statusStringProperties.redshiftStringProperty,
+      ],
+      (observed, emitted, blueshift, redshift) => {
         if (observed > emitted) {
-          return statusStringProperties.blueshiftStringProperty.value;
+          return blueshift;
         } else if (observed < emitted) {
-          return statusStringProperties.redshiftStringProperty.value;
+          return redshift;
         } else {
           return "";
         }

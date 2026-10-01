@@ -47,13 +47,9 @@ export class StringManager {
 
   public getStatusTextStrings() {
     return {
-      emittedFrequencyPatternStringProperty: stringProperties.graphs.emittedFrequencyStringProperty,
       observedFrequencyPatternStringProperty: stringProperties.graphs.observedFrequencyStringProperty,
-      selectedObjectPatternStringProperty: stringProperties.selectedObjectStringProperty,
       blueshiftStringProperty: stringProperties.shift.blueshiftStringProperty,
       redshiftStringProperty: stringProperties.shift.redshiftStringProperty,
-      sourceStringProperty: stringProperties.sourceStringProperty,
-      observerStringProperty: stringProperties.observerStringProperty,
     };
   }
 
@@ -82,8 +78,6 @@ export class StringManager {
   public getInstructionsStrings() {
     return {
       titleStringProperty: stringProperties.titleStringProperty,
-      dragAndDropStringProperty: stringProperties.help.dragAndDropStringProperty,
-      keyboardControlsStringProperty: stringProperties.help.keyboardControlsStringProperty,
       sections: {
         navigationStringProperty: stringProperties.help.sections.navigationStringProperty,
         simulationControlsStringProperty: stringProperties.help.sections.simulationControlsStringProperty,
@@ -116,7 +110,6 @@ export class StringManager {
       },
       toggleMotionTrailsStringProperty: stringProperties.help.toggleMotionTrailsStringProperty,
       toggleMicrophoneStringProperty: stringProperties.help.toggleMicrophoneStringProperty,
-      dragMicrophoneStringProperty: stringProperties.help.dragMicrophoneStringProperty,
       a11y: {
         objectSelection: {
           selectSourceStringProperty: stringProperties.help.a11y.objectSelection.selectSourceStringProperty,
@@ -174,13 +167,6 @@ export class StringManager {
       observerRecedingStringProperty: stringProperties.scenarios.observerRecedingStringProperty,
       sameDirectionStringProperty: stringProperties.scenarios.sameDirectionStringProperty,
       perpendicularStringProperty: stringProperties.scenarios.perpendicularStringProperty,
-    };
-  }
-
-  public getObjectStrings() {
-    return {
-      sourceStringProperty: stringProperties.sourceStringProperty,
-      observerStringProperty: stringProperties.observerStringProperty,
     };
   }
 
