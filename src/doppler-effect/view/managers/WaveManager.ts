@@ -48,8 +48,8 @@ export class WaveManager {
     const waveNode = new Circle(0, {
       stroke: this.waveColorProperty,
       fill: null,
-      lineWidth: 2,
-      opacity: 0.7,
+      lineWidth: WAVE.LINE_WIDTH,
+      opacity: WAVE.INITIAL_OPACITY,
     });
 
     this.waveLayer.addChild(waveNode);
@@ -99,7 +99,7 @@ export class WaveManager {
 
       // Update opacity based on age
       const age = Math.max(0, simulationTime - wave.birthTime); // Ensure age is non-negative
-      const opacity = 0.7 * (1 - age / WAVE.MAX_AGE);
+      const opacity = WAVE.INITIAL_OPACITY * (1 - age / WAVE.MAX_AGE);
 
       // Clamp opacity between 0 and 1
       waveNode.opacity = Math.min(1, Math.max(0, opacity));

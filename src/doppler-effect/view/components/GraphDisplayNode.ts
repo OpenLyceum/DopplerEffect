@@ -32,6 +32,9 @@ const GRAPH_TITLE_OFFSET_Y = 15;
 const GRAPH_INITIAL_Y = 30;
 const WAVEFORM_LINE_WIDTH = 2;
 const TITLE_FONT_SIZE = 12;
+/** Padding and opacity of the backing behind each graph title. */
+const TITLE_BACKING_MARGIN = 2;
+const TITLE_BACKING_OPACITY = 0.85;
 const WAVEFORM_Y_SCALING = 20; // Scaling factor for Y-axis amplitude
 
 // Waveform data from the model
@@ -54,7 +57,7 @@ interface GraphConfig {
   rect: Rectangle;
   centerLine: Line;
   waveform: Path;
-  title: Text;
+  title: Node;
 }
 
 /**
@@ -168,10 +171,18 @@ export class GraphDisplayNode extends Node {
       lineWidth: WAVEFORM_LINE_WIDTH,
     });
 
-    // Create title
-    const title = new Text(titleProperty, {
+    // Create title, on a backing in the graph's own colour so the trace drawn
+    // underneath it cannot run through the text.
+    const titleText = new Text(titleProperty, {
       font: new PhetFont(TITLE_FONT_SIZE),
       fill: textColorProperty,
+    });
+    const titleBacking = new Rectangle(0, 0, 1, 1, { fill: backgroundColorProperty, opacity: TITLE_BACKING_OPACITY });
+    titleText.localBoundsProperty.link((bounds) => {
+      titleBacking.rectBounds = bounds.dilated(TITLE_BACKING_MARGIN);
+    });
+    const title = new Node({
+      children: [titleBacking, titleText],
       left: graphX + GRAPH_TITLE_OFFSET_X,
       top: graphY + GRAPH_TITLE_OFFSET_Y,
     });

@@ -193,6 +193,7 @@ export class DopplerEffectModel {
   // Microphone properties
   public readonly microphonePositionProperty: Property<Vector2>; // Vector2 position of microphone
   public readonly microphoneEnabledProperty: BooleanProperty; // Whether microphone is enabled
+  public readonly singleKeyShortcutsEnabledProperty: TReadOnlyProperty<boolean>; // From Preferences (WCAG 2.1.4)
   public readonly waveDetectedProperty: BooleanProperty; // Emits when a wave is detected
 
   // Region the source and observer may move within, in meters (m). The view keeps it
@@ -277,6 +278,9 @@ export class DopplerEffectModel {
       preferences?.microphoneEnabledProperty.value ?? dopplerEffectQueryParameters.microphoneEnabled,
     );
     this.waveDetectedProperty = new BooleanProperty(false);
+    this.singleKeyShortcutsEnabledProperty =
+      preferences?.singleKeyShortcutsEnabledProperty ??
+      new BooleanProperty(dopplerEffectQueryParameters.singleKeyShortcuts);
 
     // Initialize simulation state
     this.simulationTimeProperty = new NumberProperty(0);

@@ -25,6 +25,17 @@ const dopplerEffectQueryParameters = QueryStringMachine.getAll({
     defaultValue: false,
     public: true,
   },
+
+  /**
+   * Whether the unmodified letter, number and Space shortcuts are on. They can be
+   * turned off (here or in Preferences) for speech-input users and anyone who
+   * triggers them by accident (WCAG 2.1.4, Character Key Shortcuts).
+   */
+  singleKeyShortcuts: {
+    type: "boolean",
+    defaultValue: true,
+    public: true,
+  },
 });
 
 DopplerEffectNamespace.register("dopplerEffectQueryParameters", dopplerEffectQueryParameters);

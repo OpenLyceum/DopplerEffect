@@ -128,6 +128,7 @@
   },
   "preferences": {
     "title": "Simulation",
-    "microphoneEnabled": "Microphone activé"
+    "microphoneEnabled": "Microphone activé",
+    "singleKeyShortcuts": "Raccourcis à une touche (lettres, chiffres, Espace)"
   }
 }

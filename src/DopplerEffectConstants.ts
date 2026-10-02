@@ -26,11 +26,15 @@ export const PHYSICS = {
   POSITION_TO_VELOCITY_FACTOR: 0.1, // Factor to convert position difference to velocity (1/time)
   MAX_SPEED_FACTOR: 0.9, // Factor to limit maximum speed relative to sound speed
   KEYBOARD_SPEED: 100, // Speed set by the keyboard movement keys (m/s)
+  KEYBOARD_FREQUENCY_STEP: 0.1, // Emitted-frequency change per +/- key press (Hz)
+  KEYBOARD_SOUND_SPEED_STEP: 1.0, // Sound-speed change per , / . key press (m/s)
 } as const;
 
 // Wave properties
 export const WAVE = {
   MAX_AGE: 10, // Maximum age of a wave in seconds (s)
+  INITIAL_OPACITY: 0.7, // Opacity of a newly emitted wavefront, fading to 0 at MAX_AGE (dimensionless)
+  LINE_WIDTH: 2, // Stroke width of a wavefront (view px)
 } as const;
 
 // Default region the source and observer may move within (in meters). The view

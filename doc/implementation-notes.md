@@ -69,7 +69,7 @@ drags update `MovableObject` position Properties on the model.
 
 ## Disposal conventions
 
-Most nodes and Property links are screen-lifetime (the drag listeners included). Expand `tests/memory-leak.test.ts` if adding dynamic layers or scenario rebuild paths.
+The model, the screen view, and every node in it (drag listeners, `DerivedProperty`s, the microphone and graph nodes) are created once and live as long as the sim. Their links connect objects that are never torn down, so nothing is unlinked and no class has a `dispose()`. Wavefront circles are the exception that comes and goes: `WaveManager` removes them from the layer, which is enough because their color Property is only linked while they are displayed; `tests/memory-leak.test.ts` checks that removed ones are collected. Trails have their shapes replaced rather than being recreated. The one thing attached outside the scene graph, the window `keydown` listener in `KeyboardHandlerManager`, is removed by `detachKeyboardHandlers()`. Expand `tests/memory-leak.test.ts` if adding dynamic layers or scenario rebuild paths.
 
 ## Testing
 

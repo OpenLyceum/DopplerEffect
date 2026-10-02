@@ -49,6 +49,11 @@ const UI = {
   GRAPH_MARGIN: 20,
   GRAPH_SPACING: 10,
   TRAIL_WIDTH: 2,
+  SCREEN_MARGIN: 10, // Inset of the controls from the visible area, px
+  SELECTION_HIGHLIGHT_PADDING: 5, // Gap between the selected object and its highlight ring, px
+  SCALE_MARK_LENGTH_M: 1000, // Length the scale mark represents, m
+  SCALE_MARK_TOP_M: -2000, // Model y of the scale mark's top edge, m (below the play area's centre)
+  SCALE_MARK_GAP: 30, // Gap between the scale mark and the Reset All button, px
 } as const;
 
 // Inset of the movement bounds from the visible area, in meters (m)
@@ -231,7 +236,7 @@ export class DopplerEffectScreenView extends ScreenView {
     );
 
     // Create selection highlight
-    this.selectionHighlightCircle = new Circle(UI.SOURCE_RADIUS + 5, {
+    this.selectionHighlightCircle = new Circle(UI.SOURCE_RADIUS + UI.SELECTION_HIGHLIGHT_PADDING, {
       stroke: DopplerEffectColors.selectionColorProperty,
       lineWidth: 2,
       // Make purely visual elements non-accessible
@@ -349,12 +354,12 @@ export class DopplerEffectScreenView extends ScreenView {
 
     // Create scale mark node to show model-to-view scale
     const scaleMarkNode = new ScaleMarkNode(this.modelViewTransform, this.visibleValuesProperty, {
-      scaleModelLength: 1000, // 1000 meters scale for better visibility
+      scaleModelLength: UI.SCALE_MARK_LENGTH_M,
     });
     scaleMarkNode.setAccessibleName(a11yControls.scaleMarkStringProperty);
 
     // Position the scale mark
-    scaleMarkNode.top = this.modelViewTransform.modelToViewY(-2000);
+    scaleMarkNode.top = this.modelViewTransform.modelToViewY(UI.SCALE_MARK_TOP_M);
     this.controlLayer.addChild(scaleMarkNode);
 
     // Add time control node
@@ -395,6 +400,8 @@ export class DopplerEffectScreenView extends ScreenView {
 
     // Setup keyboard handlers
     this.keyboardManager.attachKeyboardHandlers(
+      this,
+      this.model.singleKeyShortcutsEnabledProperty,
       {
         onSourceSelected: () => this.updateSelectionHighlight(),
         onObserverSelected: () => this.updateSelectionHighlight(),
@@ -461,17 +468,17 @@ export class DopplerEffectScreenView extends ScreenView {
 
     // Update the interface bounds
     this.interfaceBoundsProperty.link((interfaceBounds) => {
-      resetAllButtonNode.right = interfaceBounds.right - 10;
-      resetAllButtonNode.bottom = interfaceBounds.bottom - 10;
-      this.graphLayer.right = interfaceBounds.right - 10;
-      this.graphLayer.top = interfaceBounds.top + 10;
-      this.controlPanel.right = interfaceBounds.right - 10;
-      this.controlPanel.top = this.graphLayer.bottom + 10;
+      resetAllButtonNode.right = interfaceBounds.right - UI.SCREEN_MARGIN;
+      resetAllButtonNode.bottom = interfaceBounds.bottom - UI.SCREEN_MARGIN;
+      this.graphLayer.right = interfaceBounds.right - UI.SCREEN_MARGIN;
+      this.graphLayer.top = interfaceBounds.top + UI.SCREEN_MARGIN;
+      this.controlPanel.right = interfaceBounds.right - UI.SCREEN_MARGIN;
+      this.controlPanel.top = this.graphLayer.bottom + UI.SCREEN_MARGIN;
       timeControlNode.centerX = interfaceBounds.centerX;
-      timeControlNode.bottom = interfaceBounds.bottom - 10;
-      scenarioComboBoxNode.left = interfaceBounds.minX + 10;
-      scenarioComboBoxNode.top = interfaceBounds.top + 10;
-      scaleMarkNode.right = resetAllButtonNode.left - 30;
+      timeControlNode.bottom = interfaceBounds.bottom - UI.SCREEN_MARGIN;
+      scenarioComboBoxNode.left = interfaceBounds.minX + UI.SCREEN_MARGIN;
+      scenarioComboBoxNode.top = interfaceBounds.top + UI.SCREEN_MARGIN;
+      scaleMarkNode.right = resetAllButtonNode.left - UI.SCALE_MARK_GAP;
     });
 
     // ── Accessibility: keyboard / reading traversal order ───────────────────────

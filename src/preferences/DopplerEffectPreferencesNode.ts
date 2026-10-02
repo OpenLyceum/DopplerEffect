@@ -38,10 +38,24 @@ export class DopplerEffectPreferencesNode extends VBox {
       },
     );
 
+    const singleKeyShortcutsCheckbox = new Checkbox(
+      preferencesModel.singleKeyShortcutsEnabledProperty,
+      new Text(prefStrings.singleKeyShortcutsStringProperty, {
+        font: new PhetFont(14),
+        fill: DopplerEffectColors.controlSurfaceTextColorProperty,
+      }),
+      {
+        spacing: 8,
+        checkboxColor: DopplerEffectColors.controlSurfaceTextColorProperty,
+        checkboxColorBackground: DopplerEffectColors.controlSurfaceColorProperty,
+        ...(tandem && { tandem: tandem.createTandem("singleKeyShortcutsCheckbox") }),
+      },
+    );
+
     super({
       align: "left",
       spacing: 12,
-      children: [header, microphoneEnabledCheckbox],
+      children: [header, microphoneEnabledCheckbox, singleKeyShortcutsCheckbox],
     });
   }
 }

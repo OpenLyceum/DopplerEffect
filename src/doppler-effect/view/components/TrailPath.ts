@@ -69,11 +69,14 @@ export class TrailPath extends Path {
    * @param trailPoints - History of position points
    */
   public updateTrail(trailPoints: PositionHistoryPoint[]): void {
-    // Set visibility based on property and points
-    this.visible = this.visible && trailPoints.length > 0;
-
-    // If not visible or no points, return early
-    if (!this.visible || trailPoints.length === 0) {
+    // `visible` is the shared Motion Trails Property (passed in as visibleProperty),
+    // so an empty trail must never write it: that would uncheck the checkbox.
+    // Clear the shape instead, and skip the work while the trail is hidden.
+    if (trailPoints.length === 0) {
+      this.shape = null;
+      return;
+    }
+    if (!this.visible) {
       return;
     }
 

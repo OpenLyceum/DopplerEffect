@@ -14,10 +14,12 @@
 import type { Node, TColor } from "scenerystack/scenery";
 import {
   BasicActionsKeyboardHelpSection,
+  ComboBoxKeyboardHelpSection,
   KeyboardHelpIconFactory,
   KeyboardHelpSection,
   KeyboardHelpSectionRow,
   LetterKeyNode,
+  SliderControlsKeyboardHelpSection,
   TextKeyNode,
   TwoColumnKeyboardHelpContent,
 } from "scenerystack/scenery-phet";
@@ -134,6 +136,11 @@ export class DopplerEffectKeyboardHelpContent extends TwoColumnKeyboardHelpConte
     KeyboardHelpSection.alignHelpSectionIcons(left);
     // Align the sim's own right-column sections (not the standard basic-actions one)
     KeyboardHelpSection.alignHelpSectionIcons(right.slice(0, -1));
+
+    // The dialog also documents the stock controls the in-sim overlay leaves out:
+    // the speed-of-sound and frequency sliders, and the scenario combo box.
+    left.push(new SliderControlsKeyboardHelpSection());
+    right.splice(right.length - 1, 0, new ComboBoxKeyboardHelpSection());
     super(left, right);
   }
 }

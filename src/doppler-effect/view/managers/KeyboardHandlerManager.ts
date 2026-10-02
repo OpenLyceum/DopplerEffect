@@ -4,8 +4,8 @@
  * Manages keyboard input handlers for the Doppler Effect simulation.
  */
 
-import { type Property, Vector2 } from "scenerystack";
-import type { OneKeyStroke } from "scenerystack/scenery";
+import { type Property, type TReadOnlyProperty, Vector2 } from "scenerystack";
+import type { Node, OneKeyStroke } from "scenerystack/scenery";
 import { PHYSICS } from "../../../DopplerEffectConstants.js";
 import { Scenario } from "../../model/DopplerEffectModel.js";
 import {
@@ -76,6 +76,10 @@ export class KeyboardHandlerManager {
   /**
    * Attach keyboard event handlers
    *
+   * @param target - Node that owns the shortcuts (the screen view). While a modal dialog is open
+   *   joist hides the screen views from the PDOM, and the shortcuts stop with them.
+   * @param enabledProperty - The single-key-shortcuts preference; false turns every shortcut off
+   *   (WCAG 2.1.4, Character Key Shortcuts)
    * @param callbacks - Callback functions for various keyboard actions
    * @param playProperty - Property for simulation play state
    * @param sourceVelocityProperty - Model property for source velocity
@@ -91,6 +95,8 @@ export class KeyboardHandlerManager {
    * @param scenarioProperty - Property for the current scenario
    */
   public attachKeyboardHandlers(
+    target: Node,
+    enabledProperty: TReadOnlyProperty<boolean>,
     callbacks: KeyboardCallbacks,
     playProperty: Property<boolean>,
     sourceVelocityProperty: Property<Vector2>,
@@ -122,10 +128,17 @@ export class KeyboardHandlerManager {
       this.handleAdjustments(key, emittedFrequencyProperty, soundSpeedProperty, frequencyRange, soundSpeedRange);
     };
 
-    // A single global keydown listener drives the sim-wide shortcuts. Re-attaching
+    // A single window keydown listener drives the sim-wide shortcuts. It is not a
+    // KeyboardListener.createGlobal because the sound-speed-down key (comma) has no
+    // SceneryStack key name; it reproduces that listener's gating instead. Re-attaching
     // removes any previous listener first so handlers can never stack or leak.
     this.detachKeyboardHandlers();
     this.windowKeydownListener = (event: KeyboardEvent) => {
+      // Off in Preferences, or behind a modal dialog (Preferences, Keyboard Shortcuts, About):
+      // the keys belong to the dialog, not to the sim underneath it.
+      if (!(enabledProperty.value && target.pdomVisible)) {
+        return;
+      }
       // Don't hijack keys while the user is typing in an editable control.
       // Leave Ctrl/Cmd/Alt combinations (browser zoom, reload, …) to the browser.
       if (isEditableTarget(event.target) || event.ctrlKey || event.metaKey || event.altKey) {
@@ -273,17 +286,23 @@ export class KeyboardHandlerManager {
 
     if (DopplerEffectHotkeyData.adjustFrequency.hasKeyStroke(key)) {
       if (key === "plus" || key === "equals") {
-        emittedFrequencyProperty.value = clamp(emittedFrequencyProperty.value + 0.1, frequencyRange);
+        emittedFrequencyProperty.value = clamp(
+          emittedFrequencyProperty.value + PHYSICS.KEYBOARD_FREQUENCY_STEP,
+          frequencyRange,
+        );
       } else if (key === "minus" || key === "shift+minus") {
-        emittedFrequencyProperty.value = clamp(emittedFrequencyProperty.value - 0.1, frequencyRange);
+        emittedFrequencyProperty.value = clamp(
+          emittedFrequencyProperty.value - PHYSICS.KEYBOARD_FREQUENCY_STEP,
+          frequencyRange,
+        );
       }
     }
 
     if (DopplerEffectHotkeyData.adjustSoundSpeed.hasKeyStroke(key)) {
       if (key === "period" || key === "shift+period") {
-        soundSpeedProperty.value = clamp(soundSpeedProperty.value + 1.0, soundSpeedRange);
+        soundSpeedProperty.value = clamp(soundSpeedProperty.value + PHYSICS.KEYBOARD_SOUND_SPEED_STEP, soundSpeedRange);
       } else if (key === SOUND_SPEED_DOWN_STROKE) {
-        soundSpeedProperty.value = clamp(soundSpeedProperty.value - 1.0, soundSpeedRange);
+        soundSpeedProperty.value = clamp(soundSpeedProperty.value - PHYSICS.KEYBOARD_SOUND_SPEED_STEP, soundSpeedRange);
       }
     }
   }

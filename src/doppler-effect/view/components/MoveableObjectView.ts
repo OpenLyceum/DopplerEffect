@@ -17,6 +17,10 @@ import type { PositionHistoryPoint } from "../../model/DopplerEffectModel.js";
 import { TrailPath } from "./TrailPath.js";
 import { VectorDisplay } from "./VectorDisplay.js";
 
+/** How far the object's touch and mouse areas extend past its drawn edge, view px. */
+const TOUCH_AREA_DILATION = 12;
+const MOUSE_AREA_DILATION = 4;
+
 /**
  * Configuration options for the moveable object view
  */
@@ -61,6 +65,9 @@ export class MoveableObjectView extends Node {
       tagName: "button",
       accessibleName: options.accessibleName,
     });
+    // The drawn circle is small; a larger target makes it easy to grab by touch.
+    this.objectNode.touchArea = this.objectNode.localBounds.dilated(TOUCH_AREA_DILATION);
+    this.objectNode.mouseArea = this.objectNode.localBounds.dilated(MOUSE_AREA_DILATION);
     this.addChild(this.objectNode);
 
     // Create the velocity vector display
