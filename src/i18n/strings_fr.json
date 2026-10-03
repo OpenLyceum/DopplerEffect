@@ -35,7 +35,7 @@
     "objectSelection": {
       "selectSource": "Sélectionner l'émetteur",
       "selectObserver": "Sélectionner l'observateur",
-      "moveObject": "Flèches ou WASD : Déplacer l'objet sélectionné"
+      "moveObject": "Flèches, ou W, A, D : Déplacer l'objet sélectionné"
     },
     "controls": {
       "pauseResume": "Pause/Reprendre",
@@ -59,9 +59,9 @@
     "toggleMicrophone": "Activer/désactiver le microphone.",
     "a11y": {
       "objectSelection": {
-        "selectSource": "Appuyez sur la touche S pour sélectionner l'émetteur sonore à déplacer avec les flèches ou les touches WASD.",
-        "selectObserver": "Appuyez sur la touche O pour sélectionner l'observateur à déplacer avec les flèches ou les touches WASD.",
-        "moveObject": "Utilisez les flèches ou les touches WASD pour déplacer l'objet actuellement sélectionné dans n'importe quelle direction."
+        "selectSource": "Appuyez sur la touche S pour sélectionner l'émetteur sonore, puis déplacez-le avec les flèches.",
+        "selectObserver": "Appuyez sur la touche O pour sélectionner l'observateur, puis déplacez-le avec les flèches.",
+        "moveObject": "Utilisez les flèches pour déplacer l'objet sélectionné dans n'importe quelle direction. W, A et D le déplacent aussi vers le haut, la gauche et la droite ; S sélectionne l'émetteur, utilisez donc la flèche bas pour descendre."
       },
       "controls": {
         "pauseResume": "Appuyez sur Espace pour mettre en pause ou reprendre la simulation.",
@@ -70,7 +70,7 @@
       },
       "adjust": {
         "frequency": "Appuyez sur + ou - pour augmenter ou diminuer la fréquence du son émis.",
-        "soundSpeed": "Appuyez sur , (virgule) ou . (point) pour augmenter ou diminuer la vitesse du son."
+        "soundSpeed": "Appuyez sur . (point) pour augmenter ou , (virgule) pour diminuer la vitesse du son."
       },
       "scenarioKeys": {
         "freePlay": "Utilisez les touches numériques 0-6 pour charger différents scénarios : 0 pour le mode libre, 1 pour l'émetteur qui s'approche, 2 pour l'émetteur qui s'éloigne, 3 pour l'observateur qui s'approche, 4 pour l'observateur qui s'éloigne, 5 pour le mouvement dans la même direction, et 6 pour le mouvement perpendiculaire.",
@@ -100,7 +100,7 @@
       "controlArea": "Les commandes règlent la fréquence émise et la vitesse du son, choisissent des scénarios prédéfinis, activent les flèches de vitesse, la ligne de visée, les traînées de mouvement, la grille et le microphone, et lisent ou mettent en pause la simulation. Un bouton Tout réinitialiser ramène la simulation à son état initial.",
       "interactionHint": "Déplacez la source ou l'observateur, ou chargez un scénario, puis observez comment leur mouvement modifie la fréquence observée."
     },
-    "currentDetails": "Fréquence émise {{emitted}} hertz, fréquence observée {{observed}} hertz. La simulation est {{state}}.",
+    "currentDetails": "Fréquence émise {{emitted}} hertz, fréquence observée {{observed}} hertz. La simulation est {{state}}. L'émetteur se déplace à {{sourceSpeed}} mètres par seconde et l'observateur à {{observerSpeed}} mètres par seconde, à {{distance}} mètres l'un de l'autre.",
     "playingLabel": "en cours",
     "pausedLabel": "en pause",
     "controls": {

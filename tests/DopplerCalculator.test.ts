@@ -12,6 +12,7 @@ function makeWave(position: Vector2, sourceVelocity: Vector2, sourceFrequency = 
     position,
     radius: 0,
     birthTime: 0,
+    birthTravel: 0,
     sourceVelocity,
     sourceFrequency,
     phaseAtEmission: 0,

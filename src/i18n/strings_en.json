@@ -35,7 +35,7 @@
     "objectSelection": {
       "selectSource": "Select source",
       "selectObserver": "Select observer",
-      "moveObject": "Arrow keys or WASD: Move selected object"
+      "moveObject": "Arrow keys, or W, A, D: Move selected object"
     },
     "controls": {
       "pauseResume": "Pause/Resume",
@@ -59,9 +59,9 @@
     "toggleMicrophone": "Toggle the microphone",
     "a11y": {
       "objectSelection": {
-        "selectSource": "Press the S key to select the sound source for movement with arrow keys or WASD keys.",
-        "selectObserver": "Press the O key to select the observer for movement with arrow keys or WASD keys.",
-        "moveObject": "Use arrow keys or WASD keys to move the currently selected object in any direction."
+        "selectSource": "Press the S key to select the sound source, then move it with the arrow keys.",
+        "selectObserver": "Press the O key to select the observer, then move it with the arrow keys.",
+        "moveObject": "Use the arrow keys to move the selected object in any direction. W, A and D also move it up, left and right; S selects the source, so use the Down arrow to move down."
       },
       "controls": {
         "pauseResume": "Press Space to pause or resume the simulation.",
@@ -70,7 +70,7 @@
       },
       "adjust": {
         "frequency": "Press + or - to increase or decrease the emitted sound frequency.",
-        "soundSpeed": "Press , (comma) or . (period) to increase or decrease the speed of sound."
+        "soundSpeed": "Press . (period) to increase or , (comma) to decrease the speed of sound."
       },
       "scenarioKeys": {
         "freePlay": "Use number keys 0-6 to load different scenarios: 0 for free play, 1 for source approaching, 2 for source receding, 3 for observer approaching, 4 for observer receding, 5 for same direction motion, and 6 for perpendicular motion.",
@@ -100,7 +100,7 @@
       "controlArea": "The controls set the emitted frequency and sound speed, choose preset scenarios, toggle the velocity arrows, line of sight, motion trails, grid, and microphone, and play or pause the simulation. A Reset All button returns the simulation to its starting state.",
       "interactionHint": "Drag the source or observer, or load a scenario, then watch how their motion changes the observed frequency."
     },
-    "currentDetails": "Emitted frequency {{emitted}} hertz, observed frequency {{observed}} hertz. The simulation is {{state}}.",
+    "currentDetails": "Emitted frequency {{emitted}} hertz, observed frequency {{observed}} hertz. The simulation is {{state}}. The source moves at {{sourceSpeed}} meters per second and the observer at {{observerSpeed}} meters per second, {{distance}} meters apart.",
     "playingLabel": "playing",
     "pausedLabel": "paused",
     "controls": {

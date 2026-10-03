@@ -30,16 +30,18 @@ export const PHYSICS = {
   KEYBOARD_SOUND_SPEED_STEP: 1.0, // Sound-speed change per , / . key press (m/s)
 } as const;
 
-// Wave properties
-export const WAVE = {
-  MAX_AGE: 10, // Maximum age of a wave in seconds (s)
-  INITIAL_OPACITY: 0.7, // Opacity of a newly emitted wavefront, fading to 0 at MAX_AGE (dimensionless)
-  LINE_WIDTH: 2, // Stroke width of a wavefront (view px)
-} as const;
-
 // Default region the source and observer may move within (in meters). The view
 // replaces it with the visible area once the layout is known.
 export const MOVEMENT_BOUNDS = new Bounds2(-5000, -3000, 5000, 3000);
+
+// Wave properties
+export const WAVE = {
+  // Largest radius a front is kept to (m): the diagonal of MOVEMENT_BOUNDS, so a front still
+  // reaches an observer anywhere in the play area even at the slowest speed of sound.
+  MAX_RADIUS: Math.hypot(MOVEMENT_BOUNDS.width, MOVEMENT_BOUNDS.height),
+  INITIAL_OPACITY: 0.7, // Opacity of a newly emitted wavefront, fading to 0 at MAX_RADIUS (dimensionless)
+  LINE_WIDTH: 2, // Stroke width of a wavefront (view px)
+} as const;
 
 // Initial positions (in meters)
 export const INITIAL_POSITIONS = {

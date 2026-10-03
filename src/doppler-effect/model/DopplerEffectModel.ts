@@ -36,6 +36,8 @@ export type Wave = {
   position: Vector2;
   radius: number;
   birthTime: number;
+  /** Cumulative sound travel ∫c dt at emission (m); the radius is the current travel minus this. */
+  birthTravel: number;
   sourceVelocity: Vector2;
   sourceFrequency: number;
   phaseAtEmission: number;
@@ -415,6 +417,11 @@ export class DopplerEffectModel {
       return;
     }
 
+    // Record the starting state once, so Step Back can return to it after the first step.
+    if (this.simulationStateHistory.length === 0) {
+      this.storeSimulationState();
+    }
+
     // Update simulation time
     this.simulationTimeProperty.value += modelDt; // in seconds (s)
     const currentTime = this.simulationTimeProperty.value;
@@ -426,9 +433,9 @@ export class DopplerEffectModel {
     // Store the state reached at currentTime for time reversal
     this.storeSimulationState();
 
-    // Generate and update waves
-    this.waveGenerator.generateWaves();
+    // Expand the existing fronts, then emit this step's new ones (which start part-grown)
     this.waveGenerator.updateWaves(currentTime, modelDt);
+    this.waveGenerator.generateWaves();
 
     // Check for waves at microphone
     this.waveDetectedProperty.value =

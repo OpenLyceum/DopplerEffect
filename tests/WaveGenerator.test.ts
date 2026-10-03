@@ -62,7 +62,9 @@ describe("WaveGenerator.generateWaves", () => {
     time = 0.11; // > 0.1
     generator.generateWaves();
     expect(waves.length).toBe(1);
-    expect(waves.get(0)?.birthTime).toBeCloseTo(0.11, 6);
+    // Stamped with its emission time, and already grown for the 0.01 s since.
+    expect(waves.get(0)?.birthTime).toBeCloseTo(0.1, 6);
+    expect(waves.get(0)?.radius).toBeCloseTo(343 * 0.01, 6);
     expect(waves.get(0)?.sourceFrequency).toBe(frequency);
   });
 
@@ -135,6 +137,7 @@ describe("WaveGenerator.detectWaveAt", () => {
       position: new Vector2(0, 0),
       radius: 0,
       birthTime: 0,
+      birthTravel: 0,
       sourceVelocity: new Vector2(0, 0),
       sourceFrequency: 10,
       phaseAtEmission: 0,
@@ -167,6 +170,7 @@ describe("WaveGenerator.detectWaveAt", () => {
       position: new Vector2(0, 0),
       radius: 10, // front at 10 m
       birthTime: 0,
+      birthTravel: 0,
       sourceVelocity: new Vector2(0, 0),
       sourceFrequency: 10,
       phaseAtEmission: 0,
@@ -186,6 +190,7 @@ describe("WaveGenerator.detectWaveAt", () => {
       position: new Vector2(0, 0),
       radius: 50, // sitting exactly on the microphone
       birthTime: 0,
+      birthTravel: 0,
       sourceVelocity: new Vector2(0, 0),
       sourceFrequency: 10,
       phaseAtEmission: 0,
@@ -214,11 +219,96 @@ describe("WaveGenerator.updateWaves", () => {
       () => 0,
     );
 
-    time = 0.2;
+    // One step to 0.15 s emits the front born at 0.1 s; the next step grows it by c·dt.
+    time = 0.15;
+    generator.updateWaves(time, 0.15);
     generator.generateWaves();
     expect(waves.length).toBe(1);
+    expect(waves.get(0)?.radius).toBeCloseTo(soundSpeed * 0.05, 6);
 
+    time = 0.25;
     generator.updateWaves(time, 0.1);
-    expect(waves.get(0)?.radius).toBeCloseTo(soundSpeed * 0.1, 6);
+    expect(waves.get(0)?.radius).toBeCloseTo(soundSpeed * 0.15, 6);
+  });
+
+  it("keeps fronts from one long frame distinct, each from where the source was", () => {
+    let time = 0;
+    const waves = makeFakeWaveArray();
+    const sourceVelocity = new Vector2(100, 0);
+    const generator = new WaveGenerator(
+      waves,
+      () => time,
+      () => sourceVelocity.timesScalar(time),
+      () => sourceVelocity,
+      () => 4,
+      () => 343,
+      () => 0,
+    );
+
+    time = 0.55; // spans the 0.25 s and 0.50 s emissions at 4 Hz
+    generator.updateWaves(time, 0.55);
+    generator.generateWaves();
+    expect(waves.length).toBe(2);
+    const [first, second] = [waves.get(0), waves.get(1)];
+    expect(first?.birthTime).toBeCloseTo(0.25, 9);
+    expect(second?.birthTime).toBeCloseTo(0.5, 9);
+    expect(first?.radius).toBeCloseTo(343 * 0.3, 6);
+    expect(second?.radius).toBeCloseTo(343 * 0.05, 6);
+    expect(first?.position.x).toBeCloseTo(25, 6);
+    expect(second?.position.x).toBeCloseTo(50, 6);
+  });
+
+  it("restores exact radii on rewind after the speed of sound changed", () => {
+    let time = 0;
+    let soundSpeed = 343;
+    const waves = makeFakeWaveArray();
+    const generator = new WaveGenerator(
+      waves,
+      () => time,
+      () => new Vector2(0, 0),
+      () => new Vector2(0, 0),
+      () => 4,
+      () => soundSpeed,
+      () => 0,
+    );
+    const stepTo = (next: number): void => {
+      const dt = next - time;
+      time = next;
+      generator.updateWaves(time, dt);
+      generator.generateWaves();
+    };
+
+    stepTo(0.3); // front born at 0.25 s
+    stepTo(1.0);
+    const radiusAtOne = waves.get(0)?.radius ?? Number.NaN;
+    expect(radiusAtOne).toBeCloseTo(343 * 0.75, 6);
+
+    soundSpeed = 171.5;
+    stepTo(2.0);
+    generator.rewindTo(1.0);
+    time = 1.0;
+    expect(waves.get(0)?.radius).toBeCloseTo(radiusAtOne, 6);
+  });
+
+  it("keeps a front alive long enough to cross the play area at the slowest speed", () => {
+    let time = 0;
+    const waves = makeFakeWaveArray();
+    const generator = new WaveGenerator(
+      waves,
+      () => time,
+      () => new Vector2(0, 0),
+      () => new Vector2(0, 0),
+      () => 4,
+      () => 171.5,
+      () => 0,
+    );
+    // 2,000 m at 171.5 m/s takes ≈ 11.7 s, beyond the old 10 s lifetime.
+    for (let i = 1; i <= 13 * 60; i++) {
+      time = i / 60;
+      generator.updateWaves(time, 1 / 60);
+      generator.generateWaves();
+    }
+    const largest = Math.max(...waves.items.map((wave) => wave.radius));
+    expect(largest).toBeGreaterThan(2000);
   });
 });

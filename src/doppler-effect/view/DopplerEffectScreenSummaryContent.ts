@@ -4,7 +4,8 @@
  * Accessible screen summary (SceneryStack Interactive Description) for the Doppler
  * Effect screen. Describes the play area and controls, gives an interaction hint,
  * and exposes a LIVE "current details" paragraph derived from the model (emitted
- * and observed frequencies and the play/pause state).
+ * and observed frequencies, the play/pause state, and the source and observer
+ * speeds and separation that the Values overlay shows).
  *
  * Follows the OpenLyceum accessibility convention; see the canonical
  * SceneryStackTemplate/DopplerEffectScreenSummaryContent.ts.
@@ -29,12 +30,19 @@ export class DopplerEffectScreenSummaryContent extends ScreenSummaryContent {
         model.emittedFrequencyProperty,
         model.observedFrequencyProperty,
         model.playProperty,
+        model.sourceVelocityProperty,
+        model.observerVelocityProperty,
+        model.sourceObserverDistanceProperty,
       ],
-      (template, playingLabel, pausedLabel, emitted, observed, playing) =>
+      // The speeds and separation are what the Values overlay shows on screen.
+      (template, playingLabel, pausedLabel, emitted, observed, playing, sourceVelocity, observerVelocity, distance) =>
         StringUtils.fillIn(template, {
           emitted: toFixed(emitted, 1),
           observed: toFixed(observed, 1),
           state: playing ? playingLabel : pausedLabel,
+          sourceSpeed: toFixed(sourceVelocity.magnitude, 0),
+          observerSpeed: toFixed(observerVelocity.magnitude, 0),
+          distance: toFixed(distance, 0),
         }),
     );
 

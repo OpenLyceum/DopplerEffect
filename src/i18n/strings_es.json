@@ -35,7 +35,7 @@
     "objectSelection": {
       "selectSource": "Seleccionar fuente",
       "selectObserver": "Seleccionar observador",
-      "moveObject": "Teclas de flecha o WASD: Mover el objeto seleccionado"
+      "moveObject": "Teclas de flecha, o W, A, D: Mover el objeto seleccionado"
     },
     "controls": {
       "pauseResume": "Pausar/Reanudar",
@@ -59,9 +59,9 @@
     "toggleMicrophone": "Activar o desactivar el micrófono",
     "a11y": {
       "objectSelection": {
-        "selectSource": "Presiona la tecla S para seleccionar la fuente de sonido y moverla con las teclas de flecha o WASD.",
-        "selectObserver": "Presiona la tecla O para seleccionar el observador y moverlo con las teclas de flecha o WASD.",
-        "moveObject": "Usa las teclas de flecha o WASD para mover el objeto seleccionado en cualquier dirección."
+        "selectSource": "Presiona la tecla S para seleccionar la fuente de sonido y muévela con las teclas de flecha.",
+        "selectObserver": "Presiona la tecla O para seleccionar el observador y muévelo con las teclas de flecha.",
+        "moveObject": "Usa las teclas de flecha para mover el objeto seleccionado en cualquier dirección. W, A y D también lo mueven arriba, a la izquierda y a la derecha; S selecciona la fuente, así que usa la flecha abajo para bajar."
       },
       "controls": {
         "pauseResume": "Presiona Espacio para pausar o reanudar la simulación.",
@@ -70,7 +70,7 @@
       },
       "adjust": {
         "frequency": "Presiona + o - para aumentar o disminuir la frecuencia del sonido emitido.",
-        "soundSpeed": "Presiona , (coma) o . (punto) para aumentar o disminuir la velocidad del sonido."
+        "soundSpeed": "Presiona . (punto) para aumentar o , (coma) para disminuir la velocidad del sonido."
       },
       "scenarioKeys": {
         "freePlay": "Usa las teclas numéricas 0-6 para cargar diferentes escenarios: 0 para juego libre, 1 para fuente acercándose, 2 para fuente alejándose, 3 para observador acercándose, 4 para observador alejándose, 5 para movimiento en la misma dirección y 6 para movimiento perpendicular.",
@@ -100,7 +100,7 @@
       "controlArea": "Los controles ajustan la frecuencia emitida y la velocidad del sonido, eligen escenarios predefinidos, activan las flechas de velocidad, la línea de visión, las estelas de movimiento, la cuadrícula y el micrófono, y reproducen o pausan la simulación. Un botón Restablecer todo devuelve la simulación a su estado inicial.",
       "interactionHint": "Arrastra la fuente o el observador, o carga un escenario, luego observa cómo su movimiento cambia la frecuencia observada."
     },
-    "currentDetails": "Frecuencia emitida {{emitted}} hercios, frecuencia observada {{observed}} hercios. La simulación está {{state}}.",
+    "currentDetails": "Frecuencia emitida {{emitted}} hercios, frecuencia observada {{observed}} hercios. La simulación está {{state}}. La fuente se mueve a {{sourceSpeed}} metros por segundo y el observador a {{observerSpeed}} metros por segundo, a {{distance}} metros de distancia.",
     "playingLabel": "en marcha",
     "pausedLabel": "en pausa",
     "controls": {

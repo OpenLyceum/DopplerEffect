@@ -56,7 +56,7 @@ export class WaveManager {
     this.waveNodesMap.set(wave, waveNode);
 
     // Initial update
-    this.updateWaveNode(wave, 0);
+    this.updateWaveNode(wave);
   }
 
   /**
@@ -86,9 +86,8 @@ export class WaveManager {
    * Update visualization for a specific wave
    *
    * @param wave - The wave model object to update
-   * @param simulationTime - Current simulation time
    */
-  public updateWaveNode(wave: Wave, simulationTime: number): void {
+  public updateWaveNode(wave: Wave): void {
     const waveNode = this.waveNodesMap.get(wave);
     if (waveNode) {
       // Update position to match wave's origin (convert to view coordinates)
@@ -97,9 +96,8 @@ export class WaveManager {
       // Update radius to match wave's propagation (convert to view coordinates)
       waveNode.radius = this.modelViewTransform.modelToViewDeltaX(wave.radius);
 
-      // Update opacity based on age
-      const age = Math.max(0, simulationTime - wave.birthTime); // Ensure age is non-negative
-      const opacity = WAVE.INITIAL_OPACITY * (1 - age / WAVE.MAX_AGE);
+      // Fade with distance travelled, reaching 0 when the front is retired
+      const opacity = WAVE.INITIAL_OPACITY * (1 - wave.radius / WAVE.MAX_RADIUS);
 
       // Clamp opacity between 0 and 1
       waveNode.opacity = Math.min(1, Math.max(0, opacity));
@@ -110,11 +108,10 @@ export class WaveManager {
    * Update all wave nodes
    *
    * @param waves - Collection of wave objects
-   * @param simulationTime - Current simulation time
    */
-  public updateWaves(waves: Iterable<Wave>, simulationTime: number): void {
+  public updateWaves(waves: Iterable<Wave>): void {
     for (const wave of waves) {
-      this.updateWaveNode(wave, simulationTime);
+      this.updateWaveNode(wave);
     }
   }
 }

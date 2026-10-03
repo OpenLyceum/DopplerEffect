@@ -73,7 +73,19 @@ describe("DopplerEffectModel", () => {
     // @ts-expect-error -- inspecting private state
     const historyLength: number = model.waveGenerator.waveHistory.length;
     // Restorable span (1000 recorded frames ≈ 16.7 s) plus one wave lifetime, at f₀
-    expect(historyLength).toBeLessThanOrEqual(Math.ceil((1000 * DT + WAVE.MAX_AGE) * PHYSICS.EMITTED_FREQ) + 1);
+    const lifetime = WAVE.MAX_RADIUS / PHYSICS.SOUND_SPEED;
+    expect(historyLength).toBeLessThanOrEqual(Math.ceil((1000 * DT + lifetime) * PHYSICS.EMITTED_FREQ) + 1);
+  });
+
+  it("undoes the first forward step with one step back", () => {
+    const model = new DopplerEffectModel();
+    model.playProperty.value = false;
+    const start = model.sourcePositionProperty.value.copy();
+    model.step(DT, true);
+    expect(model.simulationTimeProperty.value).toBeGreaterThan(0);
+    model.step(-DT, true);
+    expect(model.simulationTimeProperty.value).toBe(0);
+    expect(model.sourcePositionProperty.value.equals(start)).toBe(true);
   });
 
   it("steps backward without going below the recorded history", () => {

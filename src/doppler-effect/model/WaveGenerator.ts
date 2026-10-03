@@ -18,6 +18,12 @@ export class WaveGenerator {
   private lastWaveTime: number = 0; // in seconds (s)
   private waveHistory: Wave[] = []; // History of waves for time reversal
 
+  // Cumulative distance sound has travelled since reset, ∫ c dt (m). A front's radius is
+  // this minus its birthTravel, so it stays exact when the speed of sound changes.
+  private travelDistance: number = 0; // in meters (m)
+  // travelDistance at each recorded step, so time reversal restores radii exactly.
+  private travelHistory: Array<{ time: number; travel: number }> = [{ time: 0, travel: 0 }];
+
   // Microphone detection state
   private lastDetectionTime: number = 0;
   private static readonly DETECTION_COOLDOWN = 0.01; // seconds between detections
@@ -44,11 +50,13 @@ export class WaveGenerator {
   }
 
   /**
-   * Generate new waves based on emitted frequency
+   * Generate new waves based on emitted frequency. Call after {@link updateWaves}, so a
+   * front emitted part-way through the step starts with the radius it reached by now.
    */
   public generateWaves(): void {
     const simulationTime = this.getSimulationTime(); // in seconds (s)
     const waveInterval = 1.0 / this.getEmittedFrequency(); // in seconds (s)
+    const soundSpeed = this.getSoundSpeed(); // in meters/second (m/s)
 
     // Advance the emission clock by whole intervals rather than snapping it to the
     // current time. Snapping would let each frame's leftover fraction accumulate and
@@ -57,13 +65,17 @@ export class WaveGenerator {
     while (simulationTime - this.lastWaveTime > waveInterval) {
       this.lastWaveTime += waveInterval; // in seconds (s)
 
-      // Create a new wave. Position/velocity/phase are sampled at the current source
-      // state (the emission time is within one interval of now, so this is accurate).
-      const newWave = {
-        position: this.getSourcePosition().copy(), // in meters (m)
-        radius: 0, // in meters (m)
-        birthTime: simulationTime, // in seconds (s)
-        sourceVelocity: this.getSourceVelocity().copy(), // in meters/second (m/s)
+      // Each front is stamped with its own emission time. The source is moved back along
+      // its velocity to where it was then, and the front has already travelled for the
+      // part of the step since, so two fronts emitted in one long frame stay distinct.
+      const lag = simulationTime - this.lastWaveTime; // in seconds (s), within one step
+      const sourceVelocity = this.getSourceVelocity();
+      const newWave: Wave = {
+        position: this.getSourcePosition().minus(sourceVelocity.timesScalar(lag)), // in meters (m)
+        radius: soundSpeed * lag, // in meters (m)
+        birthTime: this.lastWaveTime, // in seconds (s)
+        birthTravel: this.travelDistance - soundSpeed * lag, // in meters (m)
+        sourceVelocity: sourceVelocity.copy(), // in meters/second (m/s)
         sourceFrequency: this.getEmittedFrequency(), // in Hertz (Hz)
         phaseAtEmission: this.getEmittedPhase(), // in radians (rad)
       };
@@ -77,24 +89,23 @@ export class WaveGenerator {
   }
 
   /**
-   * Update existing waves (expand radius, remove old ones)
+   * Update existing waves (expand radius, remove ones that have outrun the play area).
+   * Call before {@link generateWaves} in each step.
    * @param simulationTime Current simulation time in seconds (s)
    * @param modelDt Current model delta time in seconds (s)
    */
   public updateWaves(simulationTime: number, modelDt: number): void {
-    // Update existing waves
+    this.travelDistance += modelDt * this.getSoundSpeed(); // in meters (m)
+    this.travelHistory.push({ time: simulationTime, travel: this.travelDistance });
+
     for (let i = this.waves.length - 1; i >= 0; i--) {
       const wave = this.waves.get(i);
+      wave.radius = this.travelDistance - wave.birthTravel; // in meters (m)
 
-      // Update radius based on modelDt and sound speed (in meters)
-      wave.radius += modelDt * this.getSoundSpeed(); // in meters (m)
-
-      // Calculate age in seconds (s)
-      const age = simulationTime - wave.birthTime; // in seconds (s)
-
-      // Remove waves that are too old or have a negative radius (due to time reversal)
-      if (age > WAVE.MAX_AGE || wave.radius < 0) {
-        // WAVE.MAX_AGE in seconds (s)
+      // A front is kept until it could no longer reach any point of the play area, so
+      // even at the slowest sound speed it reaches an observer at the far side. Negative
+      // radii only arise from time reversal.
+      if (wave.radius > WAVE.MAX_RADIUS || wave.radius < 0) {
         this.waves.remove(wave);
       }
     }
@@ -146,17 +157,30 @@ export class WaveGenerator {
     this.lastDetectionTime = this.getSimulationTime();
     this.waves.clear();
     this.waveHistory = [];
+    this.travelDistance = 0;
+    this.travelHistory = [{ time: this.getSimulationTime(), travel: 0 }];
   }
 
   /**
-   * Drop history entries that can no longer be restored: waves born more than
-   * WAVE.MAX_AGE before the earliest restorable time are dead at every such time.
+   * Drop history entries that can no longer be restored: waves that had already
+   * outrun the play area at the earliest restorable time are dead at every such time.
    * @param earliestRestorableTime Oldest time time-reversal can return to, in seconds (s)
    */
   public pruneHistory(earliestRestorableTime: number): void {
-    const cutoff = earliestRestorableTime - WAVE.MAX_AGE;
+    let firstTravel = 0;
+    while (
+      firstTravel + 1 < this.travelHistory.length &&
+      (this.travelHistory[firstTravel + 1]?.time ?? 0) <= earliestRestorableTime
+    ) {
+      firstTravel++;
+    }
+    if (firstTravel > 0) {
+      this.travelHistory.splice(0, firstTravel);
+    }
+
+    const cutoff = (this.travelHistory[0]?.travel ?? 0) - WAVE.MAX_RADIUS;
     let firstKept = 0;
-    while (firstKept < this.waveHistory.length && (this.waveHistory[firstKept]?.birthTime ?? 0) < cutoff) {
+    while (firstKept < this.waveHistory.length && (this.waveHistory[firstKept]?.birthTravel ?? 0) < cutoff) {
       firstKept++;
     }
     if (firstKept > 0) {
@@ -172,6 +196,8 @@ export class WaveGenerator {
    */
   public rewindTo(targetTime: number): void {
     this.waveHistory = this.waveHistory.filter((wave) => wave.birthTime <= targetTime);
+    this.travelHistory = this.travelHistory.filter((entry) => entry.time <= targetTime);
+    this.travelDistance = this.travelHistory[this.travelHistory.length - 1]?.travel ?? 0;
     const waveInterval = 1.0 / this.getEmittedFrequency(); // in seconds (s)
     while (this.lastWaveTime > targetTime) {
       this.lastWaveTime -= waveInterval;
@@ -190,22 +216,15 @@ export class WaveGenerator {
 
     // Find waves that should exist at the target time
     for (const wave of this.waveHistory) {
-      // Only include waves that were born before the target time
-      // and haven't exceeded their maximum age
-      if (wave.birthTime <= targetTime && targetTime - wave.birthTime <= WAVE.MAX_AGE) {
-        // Reconstruct the radius the front had at the target time. This is exact while
-        // the sound speed is constant (radius = age * soundSpeed reduces to the forward
-        // integration in WaveGenerator.updateWaves); if the speed changed during the
-        // wave's lifetime it is a best-effort estimate from the current speed, consistent
-        // with the arrival-time reconstruction in DopplerCalculator.findWavesAtObserver.
-        // age is non-negative here (birthTime <= targetTime), so radius is too.
-        const age = targetTime - wave.birthTime;
-        const radius = Math.max(0, age * this.getSoundSpeed());
-
+      // The front's radius at the target time follows from the travel recorded then,
+      // so it is exact even if the speed of sound changed during the wave's lifetime.
+      const radius = this.travelDistance - wave.birthTravel;
+      if (wave.birthTime <= targetTime && radius >= 0 && radius <= WAVE.MAX_RADIUS) {
         const restoredWave = {
           position: wave.position.copy(),
           radius: radius,
           birthTime: wave.birthTime,
+          birthTravel: wave.birthTravel,
           sourceVelocity: wave.sourceVelocity.copy(),
           sourceFrequency: wave.sourceFrequency,
           phaseAtEmission: wave.phaseAtEmission,

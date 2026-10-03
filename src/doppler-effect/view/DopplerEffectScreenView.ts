@@ -76,6 +76,9 @@ export type DopplerEffectScreenViewOptions = ScreenViewOptions;
 
 export class DopplerEffectScreenView extends ScreenView {
   // Model reference
+  // Simulation time the waveform graphs were last repainted for (NaN forces a repaint).
+  private lastGraphedTime = Number.NaN;
+
   private readonly model: DopplerEffectModel;
 
   // Model-view transform
@@ -510,6 +513,7 @@ export class DopplerEffectScreenView extends ScreenView {
     // Reset components
     this.waveManager.clearWaveNodes();
     this.graphDisplayNode.reset();
+    this.lastGraphedTime = Number.NaN;
 
     // Update microphone visibility
     this.microphoneNode.visible = this.model.microphoneEnabledProperty.value;
@@ -528,6 +532,14 @@ export class DopplerEffectScreenView extends ScreenView {
   public override step(): void {
     // Update view to match model
     this.updateView();
+
+    // Repaint the graphs once per change of simulation time (including a step button press
+    // while paused), after the model step has filled in that time's waveform samples.
+    const time = this.model.simulationTimeProperty.value;
+    if (time !== this.lastGraphedTime) {
+      this.lastGraphedTime = time;
+      this.graphDisplayNode.updateWaveforms(this.model.emittedWaveformData, this.model.observedWaveformData);
+    }
   }
 
   /**
@@ -548,10 +560,9 @@ export class DopplerEffectScreenView extends ScreenView {
       this.waveManager.removeWaveNode(wave);
     });
 
-    // Update waveforms when model changes
-    this.model.simulationTimeProperty.link(() => {
-      this.graphDisplayNode.updateWaveforms(this.model.emittedWaveformData, this.model.observedWaveformData);
-    });
+    // The waveform graphs repaint in step(), after the model has updated the waveform
+    // data. Repainting on simulationTimeProperty would run mid-step, before
+    // updateWaveforms(), and leave every graph one sample behind.
 
     // Note: the click sound on wave detection is played by MicrophoneNode, which owns
     // the microphone's detection feedback. Playing it here as well would double the click.
@@ -577,7 +588,7 @@ export class DopplerEffectScreenView extends ScreenView {
     this.updateSelectionHighlight();
 
     // Update waves
-    this.waveManager.updateWaves(this.model.waves, this.model.simulationTimeProperty.value);
+    this.waveManager.updateWaves(this.model.waves);
   }
 
   /**
