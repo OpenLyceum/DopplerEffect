@@ -14,9 +14,9 @@ src/doppler-effect/model/
   ├─ DopplerEffectModel.ts     coordinator: step, reset, scenarios, time reversal
   ├─ MovableObject.ts          position, velocity, moving flag, trail history
   ├─ WaveGenerator.ts          emit fronts, expand radius, detect microphone crossing
-  ├─ DopplerCalculator.ts      f_obs, findWavesAtObserver (pure physics helpers)
-  ├─ WaveformManager.ts        emitted/observed waveform buffers + phase
-  └─ DopplerEffectConstants.ts PHYSICS, SCALE, WAVE, SOUND_DATA, scenarios
+  ├─ DopplerCalculator.ts      f_obs, findObservedSignal (pure physics helpers)
+  ├─ WaveformManager.ts        emitted/observed samples on a fixed time grid → graph data
+  └─ DopplerEffectConstants.ts PHYSICS, SCALE, WAVE, WAVEFORM, scenarios
 
 src/doppler-effect/view/
   ├─ DopplerEffectScreenView.ts   layers: wave, object, graph, control
@@ -56,8 +56,11 @@ drags update `MovableObject` position Properties on the model.
   waves are not duplicated in `SimulationState` snapshots.
 - **Movement bounds.** `MovableObject` clamps to the model's `movementBoundsProperty` (the view feeds the
   visible area, inset 200 m) and stops on contact, so objects can't drift out of view.
-- **Waveform update throttling.** At slow time speed, waveform buffers update every N frames to keep
-  display stable.
+- **Waveform sampling.** `WaveformManager.record` takes samples every `WAVEFORM.SAMPLE_INTERVAL` of
+  model time, interpolating the phase across each step, so the graphs' time axis is uniform whatever the
+  frame rate or time speed (slow motion just scrolls slower). Phases come from `WaveGenerator`
+  (`getEmittedPhase`, `getNextFront`) and `DopplerCalculator.findObservedSignal`. Step back pops samples
+  (`rewindTo`); history is pruned with the state history.
 
 ## Model / view design
 

@@ -5,14 +5,14 @@
  * including emitted and observed waveforms.
  *
  * Features:
- * - Right-aligned waveforms that ensure current time is at the right edge
- * - Y-axis scaling for better waveform visualization
+ * - A shared, uniform time axis: each graph spans WAVEFORM.TIME_WINDOW of model time,
+ *   with the present at the right edge and a grid line every WAVEFORM.GRID_INTERVAL
+ * - Crests of the traces are wavefronts (leaving the source / passing the observer)
  * - Encapsulated graph element creation for emitted and observed sound
  */
 
 import {
   type Bounds2,
-  Line,
   Node,
   Path,
   PhetFont,
@@ -21,27 +21,18 @@ import {
   Rectangle,
   Shape,
   Text,
-  Vector2,
 } from "scenerystack";
 import DopplerEffectColors from "../../../DopplerEffectColors.js";
+import { WAVEFORM, type WaveformPoint } from "../../../DopplerEffectConstants.js";
 import { StringManager } from "../../../i18n/StringManager.js";
 
 // Constants for layout positioning and styling
-const GRAPH_TITLE_OFFSET_X = 5;
-const GRAPH_TITLE_OFFSET_Y = 15;
+const GRAPH_TITLE_GAP = 2; // Gap between a graph's title and its top edge, px
 const GRAPH_INITIAL_Y = 30;
 const WAVEFORM_LINE_WIDTH = 2;
 const TITLE_FONT_SIZE = 12;
-/** Padding and opacity of the backing behind each graph title. */
-const TITLE_BACKING_MARGIN = 2;
-const TITLE_BACKING_OPACITY = 0.85;
-const WAVEFORM_Y_SCALING = 20; // Scaling factor for Y-axis amplitude
-
-// Waveform data from the model
-export type WaveformPoint = {
-  t: number; // Time in seconds (s)
-  y: number; // Amplitude (dimensionless)
-};
+const AMPLITUDE_FRACTION = 0.4; // Peak amplitude as a fraction of the graph height (dimensionless)
+const TIME_GRID_LINE_WIDTH = 0.5;
 
 // Configuration options for the graph display
 type GraphDisplayOptions = {
@@ -55,15 +46,14 @@ type GraphDisplayOptions = {
 // Type for defining a graph's positioning and properties
 interface GraphConfig {
   rect: Rectangle;
-  centerLine: Line;
+  grid: Path;
   waveform: Path;
   title: Node;
 }
 
 /**
  * Component that renders the waveform graphs for the simulation
- * Displays both emitted and observed sound waveforms with right-alignment
- * and amplitude scaling.
+ * Displays both emitted and observed sound waveforms on a shared time axis.
  */
 export class GraphDisplayNode extends Node {
   // Graph components
@@ -86,6 +76,7 @@ export class GraphDisplayNode extends Node {
     // Get strings from string manager
     const strings = this.stringManager.getGraphDisplayStrings();
 
+    // Each graph's title sits above it, so the spacing makes room for the second title
     const graphY1 = GRAPH_INITIAL_Y;
     const graphY2 = graphY1 + options.graphHeight + options.graphSpacing;
     const graphX = options.layoutBounds.maxX - options.graphWidth - options.graphMargin;
@@ -129,8 +120,8 @@ export class GraphDisplayNode extends Node {
 
   /**
    * Create all elements for a graph
-   * Encapsulates the creation of a complete graph with container, center line,
-   * waveform, and title.
+   * Encapsulates the creation of a complete graph with container, center line and
+   * time grid, waveform, and title.
    *
    * @param graphX - X position of the graph
    * @param graphY - Y position of the graph
@@ -160,34 +151,31 @@ export class GraphDisplayNode extends Node {
       stroke: gridColorProperty,
     });
 
-    // Create center line
-    const centerLine = new Line(graphX, graphY + height / 2, graphX + width, graphY + height / 2, {
-      stroke: gridColorProperty,
-    });
+    // Center line, and a vertical line every GRID_INTERVAL back from the present (right edge)
+    const gridShape = new Shape().moveTo(graphX, graphY + height / 2).horizontalLineToRelative(width);
+    for (let age = WAVEFORM.GRID_INTERVAL; age < WAVEFORM.TIME_WINDOW; age += WAVEFORM.GRID_INTERVAL) {
+      const x = graphX + width * (1 - age / WAVEFORM.TIME_WINDOW);
+      gridShape.moveTo(x, graphY).verticalLineToRelative(height);
+    }
+    const grid = new Path(gridShape, { stroke: gridColorProperty, lineWidth: TIME_GRID_LINE_WIDTH });
 
-    // Create waveform path
+    // Create waveform path, clipped so a trace never spills past the graph's edges
     const waveform = new Path(new Shape(), {
       stroke: waveformColorProperty,
       lineWidth: WAVEFORM_LINE_WIDTH,
+      clipArea: Shape.rect(graphX, graphY, width, height),
     });
 
-    // Create title, on a backing in the graph's own colour so the trace drawn
-    // underneath it cannot run through the text.
-    const titleText = new Text(titleProperty, {
+    // Title above the graph, clear of the trace
+    const title = new Text(titleProperty, {
       font: new PhetFont(TITLE_FONT_SIZE),
       fill: textColorProperty,
-    });
-    const titleBacking = new Rectangle(0, 0, 1, 1, { fill: backgroundColorProperty, opacity: TITLE_BACKING_OPACITY });
-    titleText.localBoundsProperty.link((bounds) => {
-      titleBacking.rectBounds = bounds.dilated(TITLE_BACKING_MARGIN);
-    });
-    const title = new Node({
-      children: [titleBacking, titleText],
-      left: graphX + GRAPH_TITLE_OFFSET_X,
-      top: graphY + GRAPH_TITLE_OFFSET_Y,
+      maxWidth: width,
+      left: graphX,
+      bottom: graphY - GRAPH_TITLE_GAP,
     });
 
-    return { rect, centerLine, waveform, title };
+    return { rect, grid, waveform, title };
   }
 
   /**
@@ -197,7 +185,7 @@ export class GraphDisplayNode extends Node {
    */
   private addGraphElements(config: GraphConfig): void {
     this.addChild(config.rect);
-    this.addChild(config.centerLine);
+    this.addChild(config.grid);
     this.addChild(config.waveform);
     this.addChild(config.title);
   }
@@ -223,82 +211,31 @@ export class GraphDisplayNode extends Node {
    * @param observedWaveformData - Data for the observed waveform
    */
   public updateWaveforms(emittedWaveformData: WaveformPoint[], observedWaveformData: WaveformPoint[]): void {
-    // Update emitted sound waveform
-    this.emittedWaveform.shape = this.createWaveformShape(
-      this.emittedGraph.left,
-      this.emittedGraph.centerY,
-      this.emittedGraph.width,
-      emittedWaveformData,
-    );
-
-    // Update observed sound waveform
-    this.observedWaveform.shape = this.createWaveformShape(
-      this.observedGraph.left,
-      this.observedGraph.centerY,
-      this.observedGraph.width,
-      observedWaveformData,
-    );
+    this.emittedWaveform.shape = this.createWaveformShape(this.emittedGraph, emittedWaveformData);
+    this.observedWaveform.shape = this.createWaveformShape(this.observedGraph, observedWaveformData);
   }
 
   /**
-   * Find the maximum t value in waveform data
-   * Used to ensure right-alignment of waveforms
+   * Create a waveform shape from waveform data. Each point's t (0 = TIME_WINDOW ago, 1 = now)
+   * maps across the graph, and its amplitude to AMPLITUDE_FRACTION of the graph height.
    *
-   * @param waveformData - Array of waveform data points
-   * @returns Maximum t value
-   */
-  private findMaxT(waveformData: WaveformPoint[]): number {
-    let maxT = 0;
-    for (const point of waveformData) {
-      maxT = Math.max(maxT, point.t);
-    }
-    return maxT;
-  }
-
-  /**
-   * Create a waveform shape from waveform data
-   * Applies right-alignment so current time is at the right edge of the graph.
-   * Also applies Y-scaling factor to amplify the waveform for better visualization.
-   *
-   * @param graphX - The x-coordinate of the left edge of the graph
-   * @param graphY - The y-coordinate of the center of the graph
-   * @param graphWidth - The width of the graph
+   * @param graph - The graph's container rectangle
    * @param waveformData - The waveform data to render
    * @returns A Shape object representing the waveform
    */
-  private createWaveformShape(
-    graphX: number,
-    graphY: number,
-    graphWidth: number,
-    waveformData: WaveformPoint[],
-  ): Shape {
+  private createWaveformShape(graph: Rectangle, waveformData: WaveformPoint[]): Shape {
     const shape = new Shape();
+    const amplitude = graph.height * AMPLITUDE_FRACTION; // px
 
-    // Find the maximum t value to ensure right alignment
-    const maxT = this.findMaxT(waveformData);
-
-    // Start at left edge
-    shape.moveToPoint(new Vector2(graphX, graphY));
-
-    let firstValidPointFound = false;
-
-    for (const point of waveformData) {
-      // Right-align the waveform by scaling the t values relative to maxT
-      // This ensures the current time (latest point) is always at the right edge
-      const normalizedT = maxT > 0 ? point.t / maxT : 0;
-      const tRatio = Math.max(0, Math.min(1, normalizedT));
-      const x = graphX + tRatio * graphWidth;
-
-      // Apply Y-scaling factor to amplify the waveform amplitude
-      const y = graphY - point.y * WAVEFORM_Y_SCALING;
-
-      if (!firstValidPointFound) {
-        shape.moveToPoint(new Vector2(x, y));
-        firstValidPointFound = true;
+    waveformData.forEach((point, index) => {
+      const x = graph.left + point.t * graph.width;
+      const y = graph.centerY - point.y * amplitude;
+      if (index === 0) {
+        shape.moveTo(x, y);
       } else {
-        shape.lineToPoint(new Vector2(x, y));
+        shape.lineTo(x, y);
       }
-    }
+    });
 
     return shape;
   }

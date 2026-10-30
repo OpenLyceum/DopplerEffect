@@ -1,4 +1,4 @@
-import { Vector2 } from "scenerystack";
+import type { Vector2 } from "scenerystack";
 import type { Wave } from "./DopplerEffectModel.js";
 
 /**
@@ -44,58 +44,38 @@ export class DopplerCalculator {
   }
 
   /**
-   * Calculate observed frequency for a stationary observer using the Doppler formula
-   * @param wave The wave reaching the observer
+   * Find what the observer hears now: the newest wavefront that has passed it, and the
+   * phase of the sound at its position.
+   *
+   * Wavefronts are emitted in order and (the source being subsonic) never overtake one
+   * another, so the fronts that have passed the observer are the oldest ones. The phase is
+   * interpolated between the newest passed front and the following one by how far the
+   * observer sits between them. That is the source's phase at the retarded time, so it is
+   * continuous from front to front and already includes motion of both source and observer.
+   * @param waves Fronts in emission order, oldest first
    * @param observerPosition Current observer position in meters (m)
-   * @param soundSpeed Current speed of sound in meters per second (m/s)
-   * @returns The observed frequency in Hertz (Hz)
+   * @param nextFront The front the source has yet to emit (radius ≤ 0), closing the gap behind the newest front
+   * @returns The newest passed front and the phase in radians (rad), or null if no front has reached the observer
    */
-  public calculateStationaryFrequency(wave: Wave, observerPosition: Vector2, soundSpeed: number): number {
-    return this.calculateObservedFrequency(wave, observerPosition, new Vector2(0, 0), soundSpeed);
-  }
-
-  /**
-   * Find waves that have reached the observer and calculate arrival times
-   * @param waves Array of all waves
-   * @param observerPosition Current observer position in meters (m)
-   * @param soundSpeed Current speed of sound in meters per second (m/s)
-   * @param simulationTime Current simulation time in seconds (s)
-   * @returns Array of waves at observer with arrival times in seconds (s)
-   */
-  public findWavesAtObserver(
-    waves: Wave[],
+  public findObservedSignal(
+    waves: ArrayLike<Wave>,
     observerPosition: Vector2,
-    soundSpeed: number,
-    simulationTime: number,
-  ): Array<{ wave: Wave; arrivalTime: number }> {
-    const wavesAtObserver: Array<{ wave: Wave; arrivalTime: number }> = [];
-
-    for (const wave of waves) {
-      // Calculate distance from wave origin to observer
-      const distanceToObserver = wave.position.distance(observerPosition); // in meters (m)
-
-      // Check if wave has reached observer
-      if (wave.radius >= distanceToObserver) {
-        // both in meters (m)
-
-        // wave.radius is integrated step-by-step with the actual sound speed at each step
-        // (see WaveGenerator.updateWaves), so it is the true distance the wavefront has
-        // traveled even if the sound speed changed during the wave's lifetime. The overshoot
-        // (radius beyond the observer) is therefore the distance traveled *since* arrival, a
-        // short recent interval over which the current sound speed is an accurate estimate.
-        // This makes the reconstructed arrival time robust to mid-flight sound-speed changes,
-        // while reducing to birthTime + distance / soundSpeed when the speed is constant.
-        const overshoot = wave.radius - distanceToObserver; // in meters (m)
-        const timeSinceArrival = overshoot / soundSpeed; // in seconds (s)
-        const arrivalTime = simulationTime - timeSinceArrival; // in seconds (s)
-
-        wavesAtObserver.push({ wave, arrivalTime }); // arrivalTime in seconds (s)
+    nextFront: Pick<Wave, "position" | "radius" | "phaseAtEmission">,
+  ): { wave: Wave; phase: number } | null {
+    for (let i = waves.length - 1; i >= 0; i--) {
+      const wave = waves[i];
+      if (wave === undefined) {
+        continue;
+      }
+      const overshoot = wave.radius - wave.position.distance(observerPosition); // in meters (m)
+      if (overshoot >= 0) {
+        const following = waves[i + 1] ?? nextFront;
+        const shortfall = Math.max(0, following.position.distance(observerPosition) - following.radius); // in meters (m)
+        const fraction = overshoot + shortfall > 0 ? overshoot / (overshoot + shortfall) : 0; // dimensionless
+        const phase = wave.phaseAtEmission + (following.phaseAtEmission - wave.phaseAtEmission) * fraction; // in radians (rad)
+        return { wave, phase };
       }
     }
-
-    // Sort by arrival time (most recent first)
-    wavesAtObserver.sort((a, b) => b.arrivalTime - a.arrivalTime);
-
-    return wavesAtObserver; // arrivalTime in seconds (s)
+    return null;
   }
 }

@@ -1,6 +1,6 @@
 import { Bounds2, Vector2 } from "scenerystack";
 import { describe, expect, it } from "vitest";
-import { PHYSICS, WAVE } from "../src/DopplerEffectConstants.js";
+import { PHYSICS, WAVE, WAVEFORM, type WaveformPoint } from "../src/DopplerEffectConstants.js";
 import { DopplerEffectModel, Scenario } from "../src/doppler-effect/model/DopplerEffectModel.js";
 
 const DT = 1 / 60;
@@ -9,6 +9,18 @@ function run(model: DopplerEffectModel, seconds: number): void {
   for (let i = 0; i < Math.round(seconds / DT); i++) {
     model.step(DT);
   }
+}
+
+/** Frequency of a graph trace, from its first and last crests (Hz). */
+function traceFrequency(data: WaveformPoint[]): number {
+  const crests: number[] = [];
+  for (let i = 1; i < data.length - 1; i++) {
+    const y = data[i]?.y ?? 0;
+    if (y > 0.5 && y >= (data[i - 1]?.y ?? 0) && y > (data[i + 1]?.y ?? 0)) {
+      crests.push((data[i]?.t ?? 0) * WAVEFORM.TIME_WINDOW);
+    }
+  }
+  return (crests.length - 1) / ((crests[crests.length - 1] ?? 0) - (crests[0] ?? 0));
 }
 
 describe("DopplerEffectModel", () => {
@@ -106,5 +118,55 @@ describe("DopplerEffectModel", () => {
     run(model, 1);
     // Same wave count as the original run reached at t = 5 s: no gap, no duplicates
     expect(Math.abs(model.waves.length - wavesBefore)).toBeLessThanOrEqual(1);
+  });
+
+  it("graphs the emitted and Doppler-shifted observed frequencies", () => {
+    const model = new DopplerEffectModel();
+    model.scenarioProperty.value = Scenario.SOURCE_APPROACHING;
+    run(model, 10);
+    const c = PHYSICS.SOUND_SPEED;
+    const f = PHYSICS.EMITTED_FREQ;
+    expect(traceFrequency(model.emittedWaveformData)).toBeCloseTo(f, 1);
+    expect(traceFrequency(model.observedWaveformData)).toBeCloseTo((f * c) / (c - 100), 1);
+  });
+
+  it("puts an emitted crest at each wavefront's emission", () => {
+    const model = new DopplerEffectModel();
+    run(model, 3);
+    const now = model.simulationTimeProperty.value;
+    const newest = model.waves[model.waves.length - 1];
+    const previous = model.waves[model.waves.length - 2];
+    expect(newest).toBeDefined();
+    if (newest === undefined || previous === undefined) {
+      return;
+    }
+    // Consecutive fronts are one cycle apart, and each sits on a crest of the emitted trace
+    expect(newest.phaseAtEmission - previous.phaseAtEmission).toBeCloseTo(2 * Math.PI, 9);
+    for (const point of model.emittedWaveformData) {
+      const time = now - WAVEFORM.TIME_WINDOW * (1 - point.t);
+      if (time >= newest.birthTime) {
+        expect(point.y).toBeCloseTo(Math.cos(2 * Math.PI * PHYSICS.EMITTED_FREQ * (time - newest.birthTime)), 6);
+      }
+    }
+  });
+
+  it("keeps the graphs in step with the clock after stepping backward", () => {
+    const model = new DopplerEffectModel();
+    model.scenarioProperty.value = Scenario.SOURCE_APPROACHING;
+    run(model, 8);
+    const before = model.observedWaveformData.map((point) => point.y);
+    model.playProperty.value = false;
+    for (let i = 0; i < 30; i++) {
+      model.step(-DT, true);
+    }
+    for (let i = 0; i < 30; i++) {
+      model.step(DT, true);
+    }
+    // Replaying the same steps redraws the same observed trace
+    const after = model.observedWaveformData.map((point) => point.y);
+    expect(after.length).toBe(before.length);
+    after.forEach((y, i) => {
+      expect(y).toBeCloseTo(before[i] ?? Number.NaN, 6);
+    });
   });
 });

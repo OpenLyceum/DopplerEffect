@@ -1,6 +1,7 @@
 import type { ObservableArray, Vector2 } from "scenerystack";
 import { WAVE } from "../../DopplerEffectConstants.js";
 import type { Wave } from "./DopplerEffectModel.js";
+
 /**
  * WaveGenerator handles the creation, propagation, and lifecycle management of waves.
  * It encapsulates all wave-related functionality for the Doppler effect simulation.
@@ -12,10 +13,14 @@ export class WaveGenerator {
   private readonly getSourceVelocity: () => Vector2; // returns velocity in meters/second (m/s)
   private readonly getEmittedFrequency: () => number; // returns frequency in Hertz (Hz)
   private readonly getSoundSpeed: () => number; // returns speed in meters/second (m/s)
-  private readonly getEmittedPhase: () => number; // returns phase in radians (rad)
 
   // Time tracking (in seconds)
   private lastWaveTime: number = 0; // in seconds (s)
+  // Fronts emitted since reset. Front n carries phase 2πn, so the source's phase is this count
+  // plus the fraction of an interval since the last front (see getEmittedPhase).
+  private emittedCount: number = 0;
+  // Frequency the emission clock last ran at, so a change keeps the source's phase continuous
+  private lastFrequency: number; // in Hertz (Hz)
   private waveHistory: Wave[] = []; // History of waves for time reversal
 
   // Cumulative distance sound has travelled since reset, ∫ c dt (m). A front's radius is
@@ -38,7 +43,6 @@ export class WaveGenerator {
     getSourceVelocity: () => Vector2, // returns velocity in meters/second (m/s)
     getEmittedFrequency: () => number, // returns frequency in Hertz (Hz)
     getSoundSpeed: () => number, // returns speed in meters/second (m/s)
-    getEmittedPhase: () => number, // returns phase in radians (rad)
   ) {
     this.waves = waves;
     this.getSimulationTime = getSimulationTime;
@@ -46,7 +50,7 @@ export class WaveGenerator {
     this.getSourceVelocity = getSourceVelocity;
     this.getEmittedFrequency = getEmittedFrequency;
     this.getSoundSpeed = getSoundSpeed;
-    this.getEmittedPhase = getEmittedPhase;
+    this.lastFrequency = getEmittedFrequency();
   }
 
   /**
@@ -55,8 +59,16 @@ export class WaveGenerator {
    */
   public generateWaves(): void {
     const simulationTime = this.getSimulationTime(); // in seconds (s)
-    const waveInterval = 1.0 / this.getEmittedFrequency(); // in seconds (s)
+    const frequency = this.getEmittedFrequency(); // in Hertz (Hz)
+    const waveInterval = 1.0 / frequency; // in seconds (s)
     const soundSpeed = this.getSoundSpeed(); // in meters/second (m/s)
+
+    // A frequency change keeps the fraction of a cycle already elapsed, as an oscillator's
+    // phase would, so the next front is not early or late and the emitted waveform has no jump.
+    if (frequency !== this.lastFrequency) {
+      this.lastWaveTime = simulationTime - ((simulationTime - this.lastWaveTime) * this.lastFrequency) / frequency;
+      this.lastFrequency = frequency;
+    }
 
     // Advance the emission clock by whole intervals rather than snapping it to the
     // current time. Snapping would let each frame's leftover fraction accumulate and
@@ -64,6 +76,7 @@ export class WaveGenerator {
     // drift-free and emits every wave whose interval falls inside a long frame.
     while (simulationTime - this.lastWaveTime > waveInterval) {
       this.lastWaveTime += waveInterval; // in seconds (s)
+      this.emittedCount++;
 
       // Each front is stamped with its own emission time. The source is moved back along
       // its velocity to where it was then, and the front has already travelled for the
@@ -76,8 +89,8 @@ export class WaveGenerator {
         birthTime: this.lastWaveTime, // in seconds (s)
         birthTravel: this.travelDistance - soundSpeed * lag, // in meters (m)
         sourceVelocity: sourceVelocity.copy(), // in meters/second (m/s)
-        sourceFrequency: this.getEmittedFrequency(), // in Hertz (Hz)
-        phaseAtEmission: this.getEmittedPhase(), // in radians (rad)
+        sourceFrequency: frequency, // in Hertz (Hz)
+        phaseAtEmission: 2 * Math.PI * this.emittedCount, // in radians (rad)
       };
 
       // Add to active waves
@@ -86,6 +99,31 @@ export class WaveGenerator {
       // Store in history for time reversal
       this.waveHistory.push(newWave);
     }
+  }
+
+  /**
+   * Phase of the source at the current simulation time: 2πn when front n leaves it,
+   * advancing smoothly in between. Call after {@link generateWaves}.
+   * @returns Phase in radians (rad)
+   */
+  public getEmittedPhase(): number {
+    const cyclesSinceLastWave = (this.getSimulationTime() - this.lastWaveTime) * this.lastFrequency; // dimensionless
+    return 2 * Math.PI * (this.emittedCount + cyclesSinceLastWave);
+  }
+
+  /**
+   * The front the source will emit next, as if it had already set out: at the source's
+   * current position with a negative radius (the distance sound travels before it is
+   * emitted). It bounds the gap behind the newest front, so a point between the source and
+   * that front still hears a phase. Call after {@link generateWaves}.
+   */
+  public getNextFront(): Pick<Wave, "position" | "radius" | "phaseAtEmission"> {
+    const timeUntilEmission = this.lastWaveTime + 1 / this.lastFrequency - this.getSimulationTime(); // in seconds (s)
+    return {
+      position: this.getSourcePosition(), // in meters (m)
+      radius: -this.getSoundSpeed() * timeUntilEmission, // in meters (m)
+      phaseAtEmission: 2 * Math.PI * (this.emittedCount + 1), // in radians (rad)
+    };
   }
 
   /**
@@ -154,6 +192,8 @@ export class WaveGenerator {
    */
   public reset(): void {
     this.lastWaveTime = this.getSimulationTime();
+    this.emittedCount = 0;
+    this.lastFrequency = this.getEmittedFrequency();
     this.lastDetectionTime = this.getSimulationTime();
     this.waves.clear();
     this.waveHistory = [];
@@ -198,9 +238,17 @@ export class WaveGenerator {
     this.waveHistory = this.waveHistory.filter((wave) => wave.birthTime <= targetTime);
     this.travelHistory = this.travelHistory.filter((entry) => entry.time <= targetTime);
     this.travelDistance = this.travelHistory[this.travelHistory.length - 1]?.travel ?? 0;
-    const waveInterval = 1.0 / this.getEmittedFrequency(); // in seconds (s)
-    while (this.lastWaveTime > targetTime) {
-      this.lastWaveTime -= waveInterval;
+    const lastWave = this.waveHistory[this.waveHistory.length - 1];
+    if (lastWave !== undefined && this.lastWaveTime > targetTime) {
+      // The newest front left at or before the target time is exactly where the clock stood then.
+      this.lastWaveTime = lastWave.birthTime;
+      this.emittedCount = Math.round(lastWave.phaseAtEmission / (2 * Math.PI));
+    } else {
+      const waveInterval = 1.0 / this.lastFrequency; // in seconds (s)
+      while (this.lastWaveTime > targetTime) {
+        this.lastWaveTime -= waveInterval;
+        this.emittedCount--;
+      }
     }
     this.lastDetectionTime = Math.min(this.lastDetectionTime, targetTime);
     this.restoreWavesFromHistory(targetTime);

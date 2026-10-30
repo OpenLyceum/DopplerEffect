@@ -75,54 +75,66 @@ describe("DopplerCalculator.calculateObservedFrequency", () => {
     const f = calc.calculateObservedFrequency(wave, new Vector2(100, 0), new Vector2(0, 50), SOUND_SPEED);
     expect(f).toBeCloseTo(SOURCE_FREQ, 6);
   });
-
-  it("treats a stationary observer as the zero-velocity case", () => {
-    const wave = makeWave(new Vector2(0, 0), new Vector2(40, 0));
-    const moving = calc.calculateObservedFrequency(wave, new Vector2(100, 0), new Vector2(0, 0), SOUND_SPEED);
-    const stationary = calc.calculateStationaryFrequency(wave, new Vector2(100, 0), SOUND_SPEED);
-    expect(stationary).toBeCloseTo(moving, 6);
-  });
 });
 
-describe("DopplerCalculator.findWavesAtObserver", () => {
+describe("DopplerCalculator.findObservedSignal", () => {
   const calc = new DopplerCalculator();
+  const TWO_PI = 2 * Math.PI;
 
-  it("returns only waves whose radius has reached the observer", () => {
-    const observer = new Vector2(100, 0);
+  /** Front n of a train from `origin`, with the given radius; it carries phase 2πn. */
+  function makeFront(n: number, origin: Vector2, radius: number): Wave {
+    const wave = makeWave(origin, new Vector2(0, 0));
+    wave.radius = radius;
+    wave.phaseAtEmission = TWO_PI * n;
+    return wave;
+  }
 
-    const reached = makeWave(new Vector2(0, 0), new Vector2(0, 0));
-    reached.radius = 120; // past the observer (distance 100)
-
-    const notReached = makeWave(new Vector2(0, 0), new Vector2(0, 0));
-    notReached.radius = 50; // short of the observer
-
-    const result = calc.findWavesAtObserver([reached, notReached], observer, SOUND_SPEED, 1);
-    expect(result).toHaveLength(1);
-    expect(result[0]?.wave).toBe(reached);
+  it("returns null when no front has reached the observer", () => {
+    const fronts = [makeFront(1, new Vector2(0, 0), 10)];
+    const nextFront = makeFront(2, new Vector2(0, 0), -5);
+    expect(calc.findObservedSignal(fronts, new Vector2(100, 0), nextFront)).toBeNull();
   });
 
-  it("sorts arrived waves most-recent-arrival first", () => {
+  it("picks the newest passed front and interpolates the phase toward the following one", () => {
     const observer = new Vector2(100, 0);
-    const simulationTime = 10;
+    const older = makeFront(1, new Vector2(0, 0), 130); // passed 30 m ago
+    const newer = makeFront(2, new Vector2(0, 0), 110); // passed 10 m ago
+    const coming = makeFront(3, new Vector2(0, 0), 70); // 30 m short
+    const nextFront = makeFront(4, new Vector2(0, 0), -10);
 
-    // Larger overshoot => arrived longer ago => earlier arrivalTime.
-    const older = makeWave(new Vector2(0, 0), new Vector2(0, 0));
-    older.radius = 200; // overshoot 100
-
-    const newer = makeWave(new Vector2(0, 0), new Vector2(0, 0));
-    newer.radius = 110; // overshoot 10
-
-    const result = calc.findWavesAtObserver([older, newer], observer, SOUND_SPEED, simulationTime);
-    expect(result.map((r) => r.wave)).toEqual([newer, older]);
-    // arrivalTime = simulationTime - overshoot / soundSpeed
-    expect(result[0]?.arrivalTime).toBeCloseTo(simulationTime - 10 / SOUND_SPEED, 6);
-    expect(result[1]?.arrivalTime).toBeCloseTo(simulationTime - 100 / SOUND_SPEED, 6);
+    const signal = calc.findObservedSignal([older, newer, coming], observer, nextFront);
+    expect(signal?.wave).toBe(newer);
+    expect(signal?.phase).toBeCloseTo(TWO_PI * (2 + 10 / (10 + 30)), 9);
   });
 
-  it("returns an empty array when no wave has reached the observer", () => {
+  it("uses the not-yet-emitted front to close the gap behind the newest front", () => {
     const observer = new Vector2(100, 0);
-    const wave = makeWave(new Vector2(0, 0), new Vector2(0, 0));
-    wave.radius = 10;
-    expect(calc.findWavesAtObserver([wave], observer, SOUND_SPEED, 1)).toEqual([]);
+    const newest = makeFront(5, new Vector2(0, 0), 120); // passed 20 m ago
+    const nextFront = makeFront(6, new Vector2(0, 0), -60); // 160 m short
+
+    const signal = calc.findObservedSignal([newest], observer, nextFront);
+    expect(signal?.wave).toBe(newest);
+    expect(signal?.phase).toBeCloseTo(TWO_PI * (5 + 20 / (20 + 160)), 9);
+  });
+
+  it("advances the phase faster for an approaching source (Doppler-shifted rate)", () => {
+    // Fronts emitted every 1/f from a source moving at v toward an observer far ahead:
+    // they are spaced (c − v)/f apart, so the observer hears f·c/(c − v).
+    const f = 4;
+    const v = 100;
+    const observer = new Vector2(10000, 0);
+    const phaseAt = (t: number): number => {
+      const fronts: Wave[] = [];
+      for (let n = 0; n * (1 / f) <= t; n++) {
+        const birth = n / f;
+        fronts.push(makeFront(n, new Vector2(v * birth, 0), SOUND_SPEED * (t - birth)));
+      }
+      const nextBirth = fronts.length / f;
+      const nextFront = makeFront(fronts.length, new Vector2(v * t, 0), SOUND_SPEED * (t - nextBirth));
+      return calc.findObservedSignal(fronts, observer, nextFront)?.phase ?? Number.NaN;
+    };
+    const dt = 0.5;
+    const rate = (phaseAt(40 + dt) - phaseAt(40)) / TWO_PI / dt; // cycles per second
+    expect(rate).toBeCloseTo((f * SOUND_SPEED) / (SOUND_SPEED - v), 6);
   });
 });

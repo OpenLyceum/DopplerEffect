@@ -14,8 +14,8 @@ import DopplerEffectNamespace from "./DopplerEffectNamespace.js";
 
 // Definition for waveform data used in visualization
 export type WaveformPoint = {
-  t: number; // Normalized sample position in [0, 1) (dimensionless); the newest sample is rightmost
-  y: number; // Raw amplitude value (dimensionless), will be scaled for display
+  t: number; // Position across the graph in [0, 1] (dimensionless): 0 is WAVEFORM.TIME_WINDOW ago, 1 is now
+  y: number; // Amplitude in [-1, 1] (dimensionless); +1 is a crest, i.e. a wavefront
 };
 
 // Physical constants in SI units
@@ -49,11 +49,6 @@ export const INITIAL_POSITIONS = {
   OBSERVER: new Vector2(1000, 0), // Observer starts 1000m right of center (m)
 } as const;
 
-// Sound data
-export const SOUND_DATA = {
-  ARRAY_SIZE: 100, // Number of points in sound waveform arrays (dimensionless)
-} as const;
-
 // Time speed constants for simulation
 export const TIME_SPEED = {
   SLOW: 0.25, // Slow simulation speed (dimensionless)
@@ -74,8 +69,12 @@ export const SCALE = {
   MODEL_VIEW: 0.1, // Pixels per meter (pixels/m)
 } as const;
 
+// Emitted / observed waveform graphs. Samples sit on a fixed model-time grid, so the
+// graphs' time axis is uniform whatever the frame rate or time speed.
 export const WAVEFORM = {
-  HISTORY_BUFFER_SIZE: 1000, // Number of points in waveform history buffer (dimensionless)
+  TIME_WINDOW: 2, // Model time spanned by each graph, newest at the right edge (s)
+  SAMPLE_INTERVAL: 1 / 200, // Model time between recorded samples (s)
+  GRID_INTERVAL: 0.5, // Model time between the graphs' vertical grid lines (s)
 } as const;
 
 /**
@@ -103,7 +102,6 @@ DopplerEffectNamespace.register("DopplerEffectConstants", {
   WAVE,
   MOVEMENT_BOUNDS,
   INITIAL_POSITIONS,
-  SOUND_DATA,
   TIME_SPEED,
   SCALE,
   WAVEFORM,

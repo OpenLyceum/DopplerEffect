@@ -48,7 +48,6 @@ describe("WaveGenerator.generateWaves", () => {
       () => new Vector2(0, 0),
       () => frequency,
       () => 343,
-      () => 0,
     );
   });
 
@@ -122,7 +121,6 @@ describe("WaveGenerator.detectWaveAt", () => {
       () => new Vector2(0, 0),
       () => 10,
       () => soundSpeed,
-      () => 0,
     );
   }
 
@@ -216,7 +214,6 @@ describe("WaveGenerator.updateWaves", () => {
       () => new Vector2(0, 0),
       () => 10,
       () => soundSpeed,
-      () => 0,
     );
 
     // One step to 0.15 s emits the front born at 0.1 s; the next step grows it by c·dt.
@@ -242,7 +239,6 @@ describe("WaveGenerator.updateWaves", () => {
       () => sourceVelocity,
       () => 4,
       () => 343,
-      () => 0,
     );
 
     time = 0.55; // spans the 0.25 s and 0.50 s emissions at 4 Hz
@@ -269,7 +265,6 @@ describe("WaveGenerator.updateWaves", () => {
       () => new Vector2(0, 0),
       () => 4,
       () => soundSpeed,
-      () => 0,
     );
     const stepTo = (next: number): void => {
       const dt = next - time;
@@ -300,7 +295,6 @@ describe("WaveGenerator.updateWaves", () => {
       () => new Vector2(0, 0),
       () => 4,
       () => 171.5,
-      () => 0,
     );
     // 2,000 m at 171.5 m/s takes ≈ 11.7 s, beyond the old 10 s lifetime.
     for (let i = 1; i <= 13 * 60; i++) {

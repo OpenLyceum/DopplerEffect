@@ -47,7 +47,7 @@ const UI = {
   GRAPH_HEIGHT: 60,
   GRAPH_WIDTH: 210,
   GRAPH_MARGIN: 20,
-  GRAPH_SPACING: 10,
+  GRAPH_SPACING: 22, // Room between the graphs for the lower graph's title, px
   TRAIL_WIDTH: 2,
   SCREEN_MARGIN: 10, // Inset of the controls from the visible area, px
   SELECTION_HIGHLIGHT_PADDING: 5, // Gap between the selected object and its highlight ring, px
