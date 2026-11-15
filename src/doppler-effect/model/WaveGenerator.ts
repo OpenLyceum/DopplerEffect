@@ -1,6 +1,6 @@
 import type { ObservableArray, Vector2 } from "scenerystack";
 import { WAVE } from "../../DopplerEffectConstants.js";
-import type { Wave } from "./DopplerEffectModel.js";
+import type { Wave } from "./Wave.js";
 
 /**
  * WaveGenerator handles the creation, propagation, and lifecycle management of waves.

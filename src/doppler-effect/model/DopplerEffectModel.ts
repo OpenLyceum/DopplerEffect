@@ -26,23 +26,15 @@ import { StringManager } from "../../i18n/StringManager.js";
 import type { DopplerEffectPreferencesModel } from "../../preferences/DopplerEffectPreferencesModel.js";
 import dopplerEffectQueryParameters from "../../preferences/dopplerEffectQueryParameters.js";
 import { DopplerCalculator } from "./DopplerCalculator.js";
+import type { Wave } from "./Wave.js";
+
+export type { Wave } from "./Wave.js";
+
 import { MovableObject, type PositionHistoryPoint } from "./MovableObject.js";
 import { WaveformManager } from "./WaveformManager.js";
 import { WaveGenerator } from "./WaveGenerator.js";
 
 // Export the Wave type
-export type Wave = {
-  position: Vector2;
-  radius: number;
-  birthTime: number;
-  /** Cumulative sound travel ∫c dt at emission (m); the radius is the current travel minus this. */
-  birthTravel: number;
-  sourceVelocity: Vector2;
-  sourceFrequency: number;
-  /** Source phase when emitted (rad): 2πn for the n-th front since reset, so every front is a crest. */
-  phaseAtEmission: number;
-};
-
 // Position history points type — canonical definition lives in MovableObject.ts
 export type { PositionHistoryPoint } from "./MovableObject.js";
 
