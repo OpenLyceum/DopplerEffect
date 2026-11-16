@@ -170,3 +170,47 @@ describe("DopplerEffectModel", () => {
     });
   });
 });
+
+describe("parameter edits across rewind", () => {
+  it("restores sound speed before historical velocities", () => {
+    const model = new DopplerEffectModel();
+    model.sourceVelocityProperty.value = new Vector2(PHYSICS.SOUND_SPEED * 0.8, 0);
+    model.sourceMovingProperty.value = true;
+    model.step(DT, true);
+    model.step(DT, true);
+    model.soundSpeedProperty.value = PHYSICS.SOUND_SPEED / 2;
+    model.step(-DT, true);
+    expect(model.soundSpeedProperty.value).toBe(PHYSICS.SOUND_SPEED);
+    expect(model.sourceVelocityProperty.value.magnitude).toBeCloseTo(PHYSICS.SOUND_SPEED * 0.8);
+    expect(model.sourceVelocityProperty.value.magnitude).toBeLessThan(model.soundSpeedProperty.value);
+  });
+
+  it("replays identical fronts and emission phases after frequency and speed edits", () => {
+    const model = new DopplerEffectModel();
+    for (let i = 0; i < 100; i++) {
+      model.step(DT, true);
+    }
+    const originalFrequency = model.emittedFrequencyProperty.value;
+    const originalSpeed = model.soundSpeedProperty.value;
+    const fronts = () =>
+      Array.from(model.waves).map((wave) => ({
+        birth: wave.birthTime,
+        radius: wave.radius,
+        phase: wave.phaseAtEmission,
+        frequency: wave.sourceFrequency,
+        x: wave.position.x,
+        y: wave.position.y,
+      }));
+    model.emittedFrequencyProperty.value = originalFrequency * 1.5;
+    model.soundSpeedProperty.value = originalSpeed * 0.75;
+    model.step(DT, true);
+    const expected = fronts();
+    model.step(-DT, true);
+    expect(model.emittedFrequencyProperty.value).toBe(originalFrequency);
+    expect(model.soundSpeedProperty.value).toBe(originalSpeed);
+    model.emittedFrequencyProperty.value = originalFrequency * 1.5;
+    model.soundSpeedProperty.value = originalSpeed * 0.75;
+    model.step(DT, true);
+    expect(fronts()).toEqual(expected);
+  });
+});

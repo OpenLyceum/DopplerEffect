@@ -2,6 +2,14 @@ import type { ObservableArray, Vector2 } from "scenerystack";
 import { WAVE } from "../../DopplerEffectConstants.js";
 import type { Wave } from "./Wave.js";
 
+/** Emission phase and cooldown restored with a simulation snapshot. */
+export type EmissionState = {
+  lastWaveTime: number;
+  emittedCount: number;
+  lastFrequency: number;
+  lastDetectionTime: number;
+};
+
 /**
  * WaveGenerator handles the creation, propagation, and lifecycle management of waves.
  * It encapsulates all wave-related functionality for the Doppler effect simulation.
@@ -99,6 +107,16 @@ export class WaveGenerator {
       // Store in history for time reversal
       this.waveHistory.push(newWave);
     }
+  }
+
+  /** Snapshot the phase and microphone cooldown without duplicating wave history. */
+  public getEmissionState(): EmissionState {
+    return {
+      lastWaveTime: this.lastWaveTime,
+      emittedCount: this.emittedCount,
+      lastFrequency: this.lastFrequency,
+      lastDetectionTime: this.lastDetectionTime,
+    };
   }
 
   /**
@@ -233,8 +251,9 @@ export class WaveGenerator {
    * emission clock back by whole intervals, so replaying forward re-emits a gap-free train
    * instead of waiting for the old (future) clock and keeping duplicate fronts in history.
    * @param targetTime The time being rewound to, in seconds (s)
+   * @param emissionState Exact recorded clock; omitted for legacy constant-frequency callers
    */
-  public rewindTo(targetTime: number): void {
+  public rewindTo(targetTime: number, emissionState?: EmissionState): void {
     this.waveHistory = this.waveHistory.filter((wave) => wave.birthTime <= targetTime);
     this.travelHistory = this.travelHistory.filter((entry) => entry.time <= targetTime);
     this.travelDistance = this.travelHistory[this.travelHistory.length - 1]?.travel ?? 0;
@@ -250,7 +269,14 @@ export class WaveGenerator {
         this.emittedCount--;
       }
     }
-    this.lastDetectionTime = Math.min(this.lastDetectionTime, targetTime);
+    if (emissionState) {
+      this.lastWaveTime = emissionState.lastWaveTime;
+      this.emittedCount = emissionState.emittedCount;
+      this.lastFrequency = emissionState.lastFrequency;
+      this.lastDetectionTime = emissionState.lastDetectionTime;
+    } else {
+      this.lastDetectionTime = Math.min(this.lastDetectionTime, targetTime);
+    }
     this.restoreWavesFromHistory(targetTime);
   }
 

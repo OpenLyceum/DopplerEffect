@@ -41,9 +41,12 @@ export type { PositionHistoryPoint } from "./MovableObject.js";
 // Simulation state history type for time reversal.
 // Waves are intentionally not snapshotted here: wave restoration is handled by
 // WaveGenerator's own history (see restoreSimulationState), so the source/observer
-// kinematic state plus the timestamp is all that needs to be retained.
+// kinematics, physical parameters and emission clock are retained together.
 type SimulationState = {
   time: number;
+  soundSpeed: number;
+  emittedFrequency: number;
+  emissionState: ReturnType<WaveGenerator["getEmissionState"]>;
   sourcePosition: Vector2;
   observerPosition: Vector2;
   sourceVelocity: Vector2;
@@ -415,9 +418,6 @@ export class DopplerEffectModel {
     this.source.updatePosition(modelDt, currentTime);
     this.observer.updatePosition(modelDt, currentTime);
 
-    // Store the state reached at currentTime for time reversal
-    this.storeSimulationState();
-
     // Expand the existing fronts, then emit this step's new ones (which start part-grown)
     this.waveGenerator.updateWaves(currentTime, modelDt);
     this.waveGenerator.generateWaves();
@@ -429,6 +429,9 @@ export class DopplerEffectModel {
 
     // Calculate Doppler effect and record the waveforms
     this.waveformManager.record(currentTime, this.waveGenerator.getEmittedPhase(), this.updateObservedSignal());
+
+    // Snapshot after emission/detection so rewind restores the exact clock for this frame.
+    this.storeSimulationState();
   }
 
   /**
@@ -468,6 +471,9 @@ export class DopplerEffectModel {
     // Create a deep copy of the current kinematic state
     const currentState: SimulationState = {
       time: this.simulationTimeProperty.value,
+      soundSpeed: this.soundSpeedProperty.value,
+      emittedFrequency: this.emittedFrequencyProperty.value,
+      emissionState: this.waveGenerator.getEmissionState(),
       sourcePosition: this.sourcePositionProperty.value.copy(),
       observerPosition: this.observerPositionProperty.value.copy(),
       sourceVelocity: this.sourceVelocityProperty.value.copy(),
@@ -518,6 +524,10 @@ export class DopplerEffectModel {
    * @param state - The simulation state to restore
    */
   private restoreSimulationState(state: SimulationState): void {
+    // Restore the medium first; its clamp must not act on the restored velocities.
+    this.soundSpeedProperty.value = state.soundSpeed;
+    this.emittedFrequencyProperty.value = state.emittedFrequency;
+
     // Restore positions and velocities
     this.sourcePositionProperty.value = state.sourcePosition.copy();
     this.observerPositionProperty.value = state.observerPosition.copy();
@@ -527,7 +537,7 @@ export class DopplerEffectModel {
     this.observerMovingProperty.value = state.observerMoving;
 
     // Rewind the emission clock and rebuild the waves alive at that time
-    this.waveGenerator.rewindTo(state.time);
+    this.waveGenerator.rewindTo(state.time, state.emissionState);
   }
 
   /**
