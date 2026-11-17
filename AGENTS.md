@@ -58,6 +58,8 @@ frequency + play state) via the `screenSummaryContent` super-option, and orders 
 
 - **Root constants:** `src/DopplerEffectConstants.ts` (sim-wide); no separate nested primary constants module.
 - **Domain clock:** `timeSpeedProperty` plus the simulation-state history (for the step-backward button) drive the clock instead of composing fleet-standard `TimeModel`.
+- **Hardcoded colours (alpha variants):** `TrailPath.ts` builds `new Color(r, g, b, alpha)` stops from
+  an existing trail `Color` for the age gradient. Not a separate theme colour.
 
 ## Testing
 
