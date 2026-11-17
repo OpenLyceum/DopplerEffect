@@ -152,4 +152,4 @@ describe("WaveManager", () => {
 // No class in src/ has a dispose() (see doc/implementation-notes.md, "Disposal
 // conventions"), so there is nothing to list here; DopplerCalculator, DopplerEffectModel
 // and WaveManager coverage is above. Add cases here when a disposable object is introduced.
-describeDisposalLeaks([]);
+describeDisposalLeaks([], { emptyOk: "custom forceGC coverage below for disposable listeners and nodes" });
