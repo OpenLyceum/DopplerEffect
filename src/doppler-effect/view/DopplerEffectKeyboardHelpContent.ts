@@ -21,6 +21,7 @@ import {
   LetterKeyNode,
   SliderControlsKeyboardHelpSection,
   TextKeyNode,
+  TimeControlsKeyboardHelpSection,
   TwoColumnKeyboardHelpContent,
 } from "scenerystack/scenery-phet";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -138,9 +139,11 @@ export class DopplerEffectKeyboardHelpContent extends TwoColumnKeyboardHelpConte
     KeyboardHelpSection.alignHelpSectionIcons(right.slice(0, -1));
 
     // The dialog also documents the stock controls the in-sim overlay leaves out:
-    // the speed-of-sound and frequency sliders, and the scenario combo box.
+    // the speed-of-sound and frequency sliders, the scenario combo box, and the
+    // TimeControlNode's play/pause button, which binds the global Alt+K toggle
+    // alongside the sim's own Space shortcut.
     left.push(new SliderControlsKeyboardHelpSection());
-    right.splice(right.length - 1, 0, new ComboBoxKeyboardHelpSection());
+    right.splice(right.length - 1, 0, new TimeControlsKeyboardHelpSection(), new ComboBoxKeyboardHelpSection());
     super(left, right);
   }
 }
