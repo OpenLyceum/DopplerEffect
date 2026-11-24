@@ -228,6 +228,11 @@ export class DopplerEffectModel {
   private readonly waveformManager: WaveformManager;
   private readonly dopplerCalculator: DopplerCalculator;
 
+  /** Number of fronts kept for time reversal (after pruning). */
+  public getWaveHistoryLength(): number {
+    return this.waveGenerator.getWaveHistoryLength();
+  }
+
   // Expose waveform data for view access
   public get emittedWaveformData(): WaveformPoint[] {
     return this.waveformManager.emittedWaveformData;

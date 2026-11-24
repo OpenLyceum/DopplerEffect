@@ -1,4 +1,5 @@
 import type { ObservableArray, Vector2 } from "scenerystack";
+import { roundSymmetric } from "scenerystack/dot";
 import { WAVE } from "../../DopplerEffectConstants.js";
 import type { Wave } from "./Wave.js";
 
@@ -117,6 +118,11 @@ export class WaveGenerator {
       lastFrequency: this.lastFrequency,
       lastDetectionTime: this.lastDetectionTime,
     };
+  }
+
+  /** Number of fronts kept for time reversal (after pruning). */
+  public getWaveHistoryLength(): number {
+    return this.waveHistory.length;
   }
 
   /**
@@ -261,7 +267,7 @@ export class WaveGenerator {
     if (lastWave !== undefined && this.lastWaveTime > targetTime) {
       // The newest front left at or before the target time is exactly where the clock stood then.
       this.lastWaveTime = lastWave.birthTime;
-      this.emittedCount = Math.round(lastWave.phaseAtEmission / (2 * Math.PI));
+      this.emittedCount = roundSymmetric(lastWave.phaseAtEmission / (2 * Math.PI));
     } else {
       const waveInterval = 1.0 / this.lastFrequency; // in seconds (s)
       while (this.lastWaveTime > targetTime) {
