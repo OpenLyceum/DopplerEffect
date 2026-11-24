@@ -119,6 +119,11 @@ export class WaveGenerator {
     };
   }
 
+  /** Number of fronts kept for time reversal (after pruning). */
+  public getWaveHistoryLength(): number {
+    return this.waveHistory.length;
+  }
+
   /**
    * Phase of the source at the current simulation time: 2πn when front n leaves it,
    * advancing smoothly in between. Call after {@link generateWaves}.

@@ -82,11 +82,11 @@ describe("DopplerEffectModel", () => {
   it("bounds the wave history during long runs", () => {
     const model = new DopplerEffectModel();
     run(model, 120);
-    // @ts-expect-error -- inspecting private state
-    const historyLength: number = model.waveGenerator.waveHistory.length;
     // Restorable span (1000 recorded frames ≈ 16.7 s) plus one wave lifetime, at f₀
     const lifetime = WAVE.MAX_RADIUS / PHYSICS.SOUND_SPEED;
-    expect(historyLength).toBeLessThanOrEqual(Math.ceil((1000 * DT + lifetime) * PHYSICS.EMITTED_FREQ) + 1);
+    expect(model.getWaveHistoryLength()).toBeLessThanOrEqual(
+      Math.ceil((1000 * DT + lifetime) * PHYSICS.EMITTED_FREQ) + 1,
+    );
   });
 
   it("undoes the first forward step with one step back", () => {
